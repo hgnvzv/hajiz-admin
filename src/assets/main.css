@@ -3,10 +3,77 @@
 @tailwind utilities;
 
 * {
-  font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
 body {
   direction: rtl;
-  background-color: #F8FAFC;
+  background-color: #f0f4f3;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #f0f4f3;
+}
+::-webkit-scrollbar-thumb {
+  background: #257d75;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #1d6560;
+}
+
+/* Spinner brand color */
+.spinner-brand {
+  border-color: rgba(37, 125, 117, 0.2);
+  border-top-color: #257d75;
+}
+
+/* Utility classes */
+.btn-primary {
+  background: linear-gradient(135deg, #257d75, #1d6560);
+  color: white;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1d6560, #145550);
+  box-shadow: 0 4px 15px rgba(37, 125, 117, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #f2b415, #d4990f);
+  color: white;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  transition: all 0.2s;
+}
+.btn-gold:hover {
+  box-shadow: 0 4px 15px rgba(242, 180, 21, 0.3);
+  transform: translateY(-1px);
+}
+
+.card {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid #e2eded;
+  box-shadow: 0 1px 3px rgba(37, 125, 117, 0.06);
+}
+
+.badge-gold {
+  background: #fef9e7;
+  color: #b8860b;
+  border: 1px solid #fde68a;
+}
+
+.badge-teal {
+  background: #e8f5f4;
+  color: #1d6560;
+  border: 1px solid #d1ece9;
 }

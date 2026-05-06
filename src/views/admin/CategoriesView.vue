@@ -1,42 +1,60 @@
 <template>
   <div dir="rtl" class="space-y-5">
     <div class="flex justify-between items-center">
-      <h2 class="font-bold text-slate-800">التصنيفات والخدمات</h2>
+      <div class="flex items-center gap-2">
+        <div class="w-1 h-6 rounded-full" style="background: linear-gradient(180deg, #f2b415, #257d75)"></div>
+        <h2 class="font-black" style="color: #0a2c2a">التصنيفات والخدمات</h2>
+      </div>
       <button @click="showAddCat=true"
-        class="px-4 py-2 rounded-xl text-sm font-bold text-white"
-        style="background:linear-gradient(135deg,#2563EB,#1D4ED8)">+ تصنيف جديد</button>
+        class="px-4 py-2 rounded-xl text-sm font-black text-white transition-all"
+        style="background: linear-gradient(135deg, #257d75, #1d6560); box-shadow: 0 2px 8px rgba(37,125,117,0.3)">
+        + تصنيف جديد
+      </button>
     </div>
 
     <div class="space-y-4">
       <div v-for="cat in categories" :key="cat.id"
-        class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        class="rounded-2xl overflow-hidden"
+        style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
         <!-- Category Header -->
-        <div class="px-5 py-4 flex items-center gap-3 border-b border-slate-100" style="background:#F8FAFC">
-          <span class="text-2xl">{{ cat.icon }}</span>
+        <div class="px-5 py-4 flex items-center gap-3 border-b"
+          style="background: linear-gradient(135deg, #f8fbfb, #f0f4f3); border-color: #e2eded">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+            style="background: linear-gradient(135deg, #e8f5f4, #d1ece9)">{{ cat.icon }}</div>
           <div class="flex-1">
-            <p class="font-bold text-slate-900">{{ cat.nameAr }}</p>
-            <p class="text-xs text-slate-500">{{ cat.businessCount }} محل · {{ cat.subCategories?.length || 0 }} خدمة</p>
+            <p class="font-black" style="color: #0a2c2a">{{ cat.nameAr }}</p>
+            <p class="text-xs" style="color: #9aadac">{{ cat.businessCount }} محل · {{ cat.subCategories?.length || 0 }} خدمة</p>
           </div>
           <span class="text-xs font-bold px-2.5 py-1 rounded-full"
-            :style="cat.isActive ? 'background:#F0FDF4;color:#047857' : 'background:#F8FAFC;color:#94A3B8'">
+            :style="cat.isActive
+              ? 'background:#e8f5f4;color:#1d6560;border:1px solid #d1ece9'
+              : 'background:#f0f4f3;color:#9aadac;border:1px solid #e2eded'">
             {{ cat.isActive ? 'نشط' : 'موقوف' }}
           </span>
           <button @click="toggleCat(cat)"
-            class="text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
-            :style="cat.isActive ? 'background:#FEF2F2;color:#B91C1C' : 'background:#F0FDF4;color:#047857'">
+            class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
+            :style="cat.isActive
+              ? 'background:#fef2f2;color:#b91c1c'
+              : 'background:#e8f5f4;color:#1d6560'">
             {{ cat.isActive ? 'إيقاف' : 'تفعيل' }}
           </button>
           <button @click="openAddSub(cat)"
-            class="text-xs px-3 py-1.5 rounded-lg font-medium"
-            style="background:#EFF6FF;color:#2563EB">+ خدمة</button>
+            class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all"
+            style="background: linear-gradient(135deg, #f2b415, #d4990f); color: #0a2c2a">
+            + خدمة
+          </button>
         </div>
         <!-- Sub Categories -->
         <div class="p-4 flex flex-wrap gap-2">
           <span v-for="sub in cat.subCategories" :key="sub.id"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all"
-            :style="sub.isActive ? 'background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8' : 'background:#F8FAFC;border-color:#E2E8F0;color:#94A3B8'">
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all cursor-pointer"
+            :style="sub.isActive
+              ? 'background:#e8f5f4;border-color:#d1ece9;color:#1d6560'
+              : 'background:#f8fbfb;border-color:#e2eded;color:#9aadac'">
             {{ sub.nameAr }}
-            <button @click="toggleSub(sub)" class="hover:opacity-70 text-xs">
+            <button @click="toggleSub(sub)"
+              class="hover:opacity-70 text-xs w-4 h-4 rounded-full flex items-center justify-center"
+              :style="sub.isActive ? 'background:rgba(37,125,117,0.15)' : 'background:rgba(154,173,172,0.15)'">
               {{ sub.isActive ? '✓' : '✕' }}
             </button>
           </span>
@@ -46,36 +64,85 @@
 
     <!-- Add Category Modal -->
     <div v-if="showAddCat" class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background:rgba(0,0,0,0.5)" @click.self="showAddCat=false">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" dir="rtl">
-        <h3 class="font-bold text-slate-900 text-lg mb-4">تصنيف جديد</h3>
-        <div class="space-y-3">
-          <input v-model="newCat.nameAr" placeholder="الاسم بالعربي" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
-          <input v-model="newCat.name" placeholder="Name in English" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
-          <input v-model="newCat.icon" placeholder="أيقونة (emoji)" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
-          <input v-model.number="newCat.displayOrder" type="number" placeholder="الترتيب" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
+      style="background: rgba(10,44,42,0.6); backdrop-filter: blur(4px)"
+      @click.self="showAddCat=false">
+      <div class="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" dir="rtl">
+        <div class="px-6 py-5 border-b"
+          style="background: linear-gradient(135deg, #0a2c2a, #145550); border-color: rgba(255,255,255,0.08)">
+          <div class="flex justify-between items-center">
+            <h3 class="font-black text-white">تصنيف جديد</h3>
+            <button @click="showAddCat=false"
+              class="w-7 h-7 rounded-full flex items-center justify-center text-sm"
+              style="color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08)">✕</button>
+          </div>
         </div>
-        <div class="flex gap-3 mt-5">
-          <button @click="showAddCat=false" class="flex-1 py-2.5 rounded-xl text-sm border border-slate-200 text-slate-700">إلغاء</button>
-          <button @click="createCat" class="flex-1 py-2.5 rounded-xl text-sm text-white font-bold" style="background:linear-gradient(135deg,#2563EB,#1D4ED8)">إضافة</button>
+        <div class="p-6 space-y-3" style="background: white">
+          <input v-model="newCat.nameAr" placeholder="الاسم بالعربي"
+            class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style="border: 1.5px solid #e2eded; background: #f8fbfb"
+            onfocus="this.style.borderColor='#257d75'" onblur="this.style.borderColor='#e2eded'" />
+          <input v-model="newCat.name" placeholder="Name in English"
+            class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style="border: 1.5px solid #e2eded; background: #f8fbfb"
+            onfocus="this.style.borderColor='#257d75'" onblur="this.style.borderColor='#e2eded'" />
+          <input v-model="newCat.icon" placeholder="أيقونة (emoji)"
+            class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style="border: 1.5px solid #e2eded; background: #f8fbfb"
+            onfocus="this.style.borderColor='#257d75'" onblur="this.style.borderColor='#e2eded'" />
+          <input v-model.number="newCat.displayOrder" type="number" placeholder="الترتيب"
+            class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style="border: 1.5px solid #e2eded; background: #f8fbfb"
+            onfocus="this.style.borderColor='#257d75'" onblur="this.style.borderColor='#e2eded'" />
+        </div>
+        <div class="flex gap-3 px-6 pb-6" style="background: white">
+          <button @click="showAddCat=false"
+            class="flex-1 py-2.5 rounded-xl text-sm font-bold"
+            style="border: 1.5px solid #e2eded; color: #6b7f7e">إلغاء</button>
+          <button @click="createCat"
+            class="flex-1 py-2.5 rounded-xl text-sm font-black text-white"
+            style="background: linear-gradient(135deg, #257d75, #1d6560); box-shadow: 0 3px 12px rgba(37,125,117,0.25)">إضافة</button>
         </div>
       </div>
     </div>
 
     <!-- Add Sub Modal -->
     <div v-if="showAddSub" class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background:rgba(0,0,0,0.5)" @click.self="showAddSub=false">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" dir="rtl">
-        <h3 class="font-bold text-slate-900 text-lg mb-1">إضافة خدمة</h3>
-        <p class="text-sm text-slate-500 mb-4">لـ {{ selectedCat?.nameAr }}</p>
-        <div class="space-y-3">
-          <input v-model="newSub.nameAr" placeholder="اسم الخدمة بالعربي" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
-          <input v-model="newSub.name" placeholder="Service name in English" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
-          <input v-model.number="newSub.displayOrder" type="number" placeholder="الترتيب" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
+      style="background: rgba(10,44,42,0.6); backdrop-filter: blur(4px)"
+      @click.self="showAddSub=false">
+      <div class="rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" dir="rtl">
+        <div class="px-6 py-5 border-b"
+          style="background: linear-gradient(135deg, #0a2c2a, #145550); border-color: rgba(255,255,255,0.08)">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="font-black text-white">إضافة خدمة</h3>
+              <p class="text-xs mt-0.5" style="color: rgba(255,255,255,0.4)">لـ {{ selectedCat?.nameAr }}</p>
+            </div>
+            <button @click="showAddSub=false"
+              class="w-7 h-7 rounded-full flex items-center justify-center text-sm"
+              style="color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08)">✕</button>
+          </div>
         </div>
-        <div class="flex gap-3 mt-5">
-          <button @click="showAddSub=false" class="flex-1 py-2.5 rounded-xl text-sm border border-slate-200 text-slate-700">إلغاء</button>
-          <button @click="createSub" class="flex-1 py-2.5 rounded-xl text-sm text-white font-bold" style="background:linear-gradient(135deg,#2563EB,#1D4ED8)">إضافة</button>
+        <div class="p-6 space-y-3" style="background: white">
+          <input v-model="newSub.nameAr" placeholder="اسم الخدمة بالعربي"
+            class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style="border: 1.5px solid #e2eded; background: #f8fbfb"
+            onfocus="this.style.borderColor='#257d75'" onblur="this.style.borderColor='#e2eded'" />
+          <input v-model="newSub.name" placeholder="Service name in English"
+            class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style="border: 1.5px solid #e2eded; background: #f8fbfb"
+            onfocus="this.style.borderColor='#257d75'" onblur="this.style.borderColor='#e2eded'" />
+          <input v-model.number="newSub.displayOrder" type="number" placeholder="الترتيب"
+            class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
+            style="border: 1.5px solid #e2eded; background: #f8fbfb"
+            onfocus="this.style.borderColor='#257d75'" onblur="this.style.borderColor='#e2eded'" />
+        </div>
+        <div class="flex gap-3 px-6 pb-6" style="background: white">
+          <button @click="showAddSub=false"
+            class="flex-1 py-2.5 rounded-xl text-sm font-bold"
+            style="border: 1.5px solid #e2eded; color: #6b7f7e">إلغاء</button>
+          <button @click="createSub"
+            class="flex-1 py-2.5 rounded-xl text-sm font-black text-white"
+            style="background: linear-gradient(135deg, #257d75, #1d6560); box-shadow: 0 3px 12px rgba(37,125,117,0.25)">إضافة</button>
         </div>
       </div>
     </div>

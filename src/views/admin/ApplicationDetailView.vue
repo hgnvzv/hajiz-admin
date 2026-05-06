@@ -1,11 +1,18 @@
 <template>
   <div dir="rtl" class="space-y-5">
-    <div class="flex items-center gap-3">
-      <RouterLink to="/applications" class="text-blue-600 hover:underline text-sm">← طلبات الانضمام</RouterLink>
-    </div>
+    <RouterLink to="/applications"
+      class="inline-flex items-center gap-2 text-sm font-semibold transition-all"
+      style="color: #257d75">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      طلبات الانضمام
+    </RouterLink>
 
-    <div v-if="loading" class="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-      <div class="inline-block w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+    <div v-if="loading" class="rounded-2xl p-10 text-center"
+      style="background: white; border: 1px solid #e2eded">
+      <div class="inline-block w-7 h-7 border-2 rounded-full animate-spin"
+        style="border-color: rgba(37,125,117,0.2); border-top-color: #257d75"></div>
     </div>
 
     <div v-else-if="app" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -13,69 +20,80 @@
       <!-- Main Info -->
       <div class="lg:col-span-2 space-y-4">
         <!-- Header Card -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-          <div class="flex items-start justify-between mb-4">
-            <div>
-              <h2 class="text-xl font-bold text-slate-900">{{ app.businessName }}</h2>
-              <p class="text-slate-500 text-sm mt-1">{{ app.ownerName }} · {{ app.phone }}</p>
-            </div>
-            <span class="text-sm font-bold px-3 py-1.5 rounded-full" :style="statusStyle(app.status)">
-              {{ statusLabel(app.status) }}
-            </span>
-          </div>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="p-3 rounded-xl" style="background: #F8FAFC">
-              <p class="text-xs text-slate-500 mb-0.5">التصنيف</p>
-              <p class="font-semibold text-slate-800">{{ app.categoryName }}</p>
-            </div>
-            <div class="p-3 rounded-xl" style="background: #F8FAFC">
-              <p class="text-xs text-slate-500 mb-0.5">المحافظة</p>
-              <p class="font-semibold text-slate-800">{{ app.city }}</p>
-            </div>
-            <div class="p-3 rounded-xl col-span-2" style="background: #F8FAFC">
-              <p class="text-xs text-slate-500 mb-0.5">العنوان</p>
-              <p class="font-semibold text-slate-800">{{ app.address }}</p>
+        <div class="rounded-2xl overflow-hidden"
+          style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+          <div class="px-6 py-4 border-b" style="background: linear-gradient(135deg, #f8fbfb, #f0f4f3); border-color: #e2eded">
+            <div class="flex items-start justify-between">
+              <div>
+                <h2 class="text-xl font-black" style="color: #0a2c2a">{{ app.businessName }}</h2>
+                <p class="text-sm mt-1" style="color: #6b7f7e">{{ app.ownerName }} · {{ app.phone }}</p>
+              </div>
+              <span class="text-sm font-bold px-3 py-1.5 rounded-full" :style="statusStyle(app.status)">
+                {{ statusLabel(app.status) }}
+              </span>
             </div>
           </div>
-          <div v-if="app.description" class="mt-3 p-3 rounded-xl" style="background: #F8FAFC">
-            <p class="text-xs text-slate-500 mb-1">وصف المحل</p>
-            <p class="text-slate-700 text-sm leading-relaxed">{{ app.description }}</p>
+          <div class="p-6">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="p-3.5 rounded-xl" style="background: #f8fbfb; border: 1px solid #f0f4f3">
+                <p class="text-xs font-semibold mb-1" style="color: #9aadac">التصنيف</p>
+                <p class="font-bold" style="color: #0a2c2a">{{ app.categoryName }}</p>
+              </div>
+              <div class="p-3.5 rounded-xl" style="background: #f8fbfb; border: 1px solid #f0f4f3">
+                <p class="text-xs font-semibold mb-1" style="color: #9aadac">المحافظة</p>
+                <p class="font-bold" style="color: #0a2c2a">{{ app.city }}</p>
+              </div>
+              <div class="p-3.5 rounded-xl col-span-2" style="background: #f8fbfb; border: 1px solid #f0f4f3">
+                <p class="text-xs font-semibold mb-1" style="color: #9aadac">العنوان</p>
+                <p class="font-semibold" style="color: #0a2c2a">{{ app.address }}</p>
+              </div>
+            </div>
+            <div v-if="app.description" class="mt-3 p-3.5 rounded-xl" style="background: #f8fbfb; border: 1px solid #f0f4f3">
+              <p class="text-xs font-semibold mb-1.5" style="color: #9aadac">وصف المحل</p>
+              <p class="text-sm leading-relaxed" style="color: #1a3c3a">{{ app.description }}</p>
+            </div>
           </div>
         </div>
 
         <!-- Images -->
-        <div v-if="app.imageUrls?.length" class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">صور المحل</h3>
+        <div v-if="app.imageUrls?.length" class="rounded-2xl p-5"
+          style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+          <h3 class="font-bold mb-3" style="color: #0a2c2a">صور المحل</h3>
           <div class="grid grid-cols-3 gap-2">
             <img v-for="(img, i) in app.imageUrls" :key="i" :src="img"
-              class="w-full h-24 object-cover rounded-xl border border-slate-200"
+              class="w-full h-28 object-cover rounded-xl"
+              style="border: 1px solid #e2eded"
               @error="e => (e.target as any).src = 'https://via.placeholder.com/150?text=صورة'" />
           </div>
         </div>
 
         <!-- Working Hours -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">أوقات العمل</h3>
+        <div class="rounded-2xl p-5"
+          style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+          <h3 class="font-bold mb-3" style="color: #0a2c2a">أوقات العمل</h3>
           <div class="space-y-2">
             <div v-for="wh in app.workingHours" :key="wh.dayName"
-              class="flex items-center justify-between p-2.5 rounded-xl text-sm"
-              :style="wh.isOpen ? 'background: #EFF6FF' : 'background: #F8FAFC'">
-              <span class="font-semibold" :style="wh.isOpen ? 'color: #1D4ED8' : 'color: #94A3B8'">
+              class="flex items-center justify-between p-3 rounded-xl text-sm"
+              :style="wh.isOpen
+                ? 'background: #e8f5f4; border: 1px solid #d1ece9'
+                : 'background: #f8fbfb; border: 1px solid #f0f4f3'">
+              <span class="font-bold" :style="wh.isOpen ? 'color: #1d6560' : 'color: #9aadac'">
                 {{ wh.dayName }}
               </span>
-              <span v-if="wh.isOpen" class="text-slate-600">{{ wh.startTime }} — {{ wh.endTime }}</span>
-              <span v-else class="text-xs text-slate-400">إجازة</span>
+              <span v-if="wh.isOpen" class="font-semibold" style="color: #257d75">{{ wh.startTime }} — {{ wh.endTime }}</span>
+              <span v-else class="text-xs" style="color: #9aadac">إجازة</span>
             </div>
           </div>
         </div>
 
         <!-- Sub Categories -->
-        <div v-if="app.subCategories?.length" class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">الخدمات المقدمة</h3>
+        <div v-if="app.subCategories?.length" class="rounded-2xl p-5"
+          style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+          <h3 class="font-bold mb-3" style="color: #0a2c2a">الخدمات المقدمة</h3>
           <div class="flex flex-wrap gap-2">
             <span v-for="sub in app.subCategories" :key="sub"
-              class="text-sm px-3 py-1.5 rounded-full font-medium"
-              style="background: #EFF6FF; color: #2563EB">{{ sub }}</span>
+              class="text-sm px-3 py-1.5 rounded-full font-semibold"
+              style="background: #e8f5f4; color: #257d75; border: 1px solid #d1ece9">{{ sub }}</span>
           </div>
         </div>
       </div>
@@ -83,23 +101,27 @@
       <!-- Actions Sidebar -->
       <div class="space-y-4">
         <!-- Action Card -->
-        <div v-if="app.status === 'Pending'" class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-4">اتخاذ قرار</h3>
+        <div v-if="app.status === 'Pending'" class="rounded-2xl p-5"
+          style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+          <h3 class="font-bold mb-4" style="color: #0a2c2a">اتخاذ قرار</h3>
 
-          <button @click="approve" :disabled="actionLoading"
-            class="w-full py-3 rounded-xl font-bold text-white mb-3 transition-all shadow-md"
-            style="background: linear-gradient(135deg, #059669, #047857)">
+          <button @click="approve" :disabled="actionLoading !== null"
+            class="w-full py-3 rounded-xl font-black text-white mb-3 transition-all"
+            style="background: linear-gradient(135deg, #257d75, #1d6560); box-shadow: 0 3px 12px rgba(37,125,117,0.25)">
             <span v-if="actionLoading === 'approve'">جاري القبول...</span>
             <span v-else>✓ قبول الطلب</span>
           </button>
 
           <div class="space-y-2">
             <textarea v-model="rejectReason" rows="3" placeholder="سبب الرفض (مطلوب عند الرفض)"
-              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-red-400 resize-none"></textarea>
-            <button @click="reject" :disabled="actionLoading || !rejectReason"
+              class="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all resize-none"
+              style="border: 1.5px solid #e2eded; background: #f8fbfb"
+              onfocus="this.style.borderColor='#dc2626'"
+              onblur="this.style.borderColor='#e2eded'"></textarea>
+            <button @click="reject" :disabled="actionLoading !== null || !rejectReason"
               class="w-full py-2.5 rounded-xl font-bold transition-all text-sm"
-              style="border: 1.5px solid #DC2626; color: #DC2626"
-              :style="(!rejectReason || actionLoading) ? 'opacity: 0.5' : ''">
+              style="border: 1.5px solid #dc2626; color: #dc2626; background: #fef2f2"
+              :style="(!rejectReason || actionLoading) ? 'opacity: 0.5; cursor: not-allowed' : ''">
               <span v-if="actionLoading === 'reject'">جاري الرفض...</span>
               <span v-else>✕ رفض الطلب</span>
             </button>
@@ -107,10 +129,11 @@
         </div>
 
         <!-- Already Reviewed -->
-        <div v-else class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">نتيجة المراجعة</h3>
-          <div class="p-3 rounded-xl text-sm" :style="statusStyle(app.status)">
-            <p class="font-bold mb-1">{{ statusLabel(app.status) }}</p>
+        <div v-else class="rounded-2xl p-5"
+          style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+          <h3 class="font-bold mb-3" style="color: #0a2c2a">نتيجة المراجعة</h3>
+          <div class="p-3.5 rounded-xl text-sm" :style="statusStyle(app.status)">
+            <p class="font-black mb-1">{{ statusLabel(app.status) }}</p>
             <p v-if="app.reviewedBy" class="text-xs opacity-70">بواسطة: {{ app.reviewedBy }}</p>
             <p v-if="app.reviewedAt" class="text-xs opacity-70">{{ formatDate(app.reviewedAt) }}</p>
             <p v-if="app.rejectionReason" class="mt-2 text-xs">السبب: {{ app.rejectionReason }}</p>
@@ -118,18 +141,25 @@
         </div>
 
         <!-- Quick Info -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 text-sm">
-          <div class="flex justify-between">
-            <span class="text-slate-500">تاريخ التقديم</span>
-            <span class="font-semibold text-slate-800">{{ formatDate(app.createdAt) }}</span>
+        <div class="rounded-2xl p-5 space-y-3 text-sm"
+          style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+          <div class="flex justify-between items-center">
+            <span style="color: #9aadac">تاريخ التقديم</span>
+            <span class="font-bold" style="color: #0a2c2a">{{ formatDate(app.createdAt) }}</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-slate-500">عدد الخدمات</span>
-            <span class="font-semibold text-slate-800">{{ app.subCategories?.length || 0 }}</span>
+          <div class="h-px" style="background: #f0f4f3"></div>
+          <div class="flex justify-between items-center">
+            <span style="color: #9aadac">عدد الخدمات</span>
+            <span class="font-bold px-2 py-0.5 rounded-full text-xs" style="background: #e8f5f4; color: #257d75">
+              {{ app.subCategories?.length || 0 }}
+            </span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-slate-500">الصور</span>
-            <span class="font-semibold text-slate-800">{{ app.imageUrls?.length || 0 }} صورة</span>
+          <div class="h-px" style="background: #f0f4f3"></div>
+          <div class="flex justify-between items-center">
+            <span style="color: #9aadac">الصور</span>
+            <span class="font-bold px-2 py-0.5 rounded-full text-xs" style="background: #fef9e7; color: #b45309">
+              {{ app.imageUrls?.length || 0 }} صورة
+            </span>
           </div>
         </div>
       </div>
@@ -181,9 +211,9 @@ async function reject() {
 
 function statusStyle(s: string) {
   const map: any = {
-    Pending: 'background: #FFFBEB; color: #B45309',
-    Approved: 'background: #F0FDF4; color: #047857',
-    Rejected: 'background: #FEF2F2; color: #B91C1C',
+    Pending: 'background: #fef9e7; color: #b45309; border: 1px solid #fde68a',
+    Approved: 'background: #e8f5f4; color: #1d6560; border: 1px solid #d1ece9',
+    Rejected: 'background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca',
   }
   return map[s] || ''
 }

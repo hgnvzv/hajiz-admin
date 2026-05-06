@@ -1,59 +1,82 @@
 <template>
   <div dir="rtl" class="space-y-5">
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap gap-3">
-      <input v-model="search" @input="load" placeholder="بحث بالاسم أو الهاتف..."
-        class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 flex-1 min-w-48" />
+    <!-- Filter Bar -->
+    <div class="rounded-2xl p-4 flex flex-wrap gap-3"
+      style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+      <div class="relative flex-1 min-w-48">
+        <svg class="w-4 h-4 absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none" style="color: #9aadac"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0" />
+        </svg>
+        <input v-model="search" @input="load" placeholder="بحث بالاسم أو الهاتف..."
+          class="w-full pr-9 pl-4 py-2 rounded-xl text-sm outline-none transition-all"
+          style="border: 1.5px solid #e2eded; background: #f8fbfb"
+          onfocus="this.style.borderColor='#257d75'"
+          onblur="this.style.borderColor='#e2eded'" />
+      </div>
       <select v-model="cityFilter" @change="load"
-        class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+        class="px-3 py-2 rounded-xl text-sm outline-none transition-all"
+        style="border: 1.5px solid #e2eded; background: #f8fbfb; color: #1a3c3a">
         <option value="">كل المحافظات</option>
         <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.nameAr }}</option>
       </select>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <div class="inline-block w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+    <!-- Table -->
+    <div class="rounded-2xl overflow-hidden"
+      style="background: white; border: 1px solid #e2eded; box-shadow: 0 1px 4px rgba(37,125,117,0.06)">
+      <div v-if="loading" class="p-10 text-center">
+        <div class="inline-block w-7 h-7 border-2 rounded-full animate-spin"
+          style="border-color: rgba(37,125,117,0.2); border-top-color: #257d75"></div>
       </div>
       <table v-else class="w-full text-sm">
-        <thead style="background: #F8FAFC">
-          <tr>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">المحل</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">التصنيف</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">المحافظة</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">التقييم</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">الحالة</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">إجراءات</th>
+        <thead>
+          <tr style="background: linear-gradient(135deg, #f8fbfb, #f0f4f3)">
+            <th class="text-right px-5 py-3.5 text-xs font-black" style="color: #6b7f7e">المحل</th>
+            <th class="text-right px-5 py-3.5 text-xs font-black" style="color: #6b7f7e">التصنيف</th>
+            <th class="text-right px-5 py-3.5 text-xs font-black" style="color: #6b7f7e">المحافظة</th>
+            <th class="text-right px-5 py-3.5 text-xs font-black" style="color: #6b7f7e">التقييم</th>
+            <th class="text-right px-5 py-3.5 text-xs font-black" style="color: #6b7f7e">الحالة</th>
+            <th class="text-right px-5 py-3.5 text-xs font-black" style="color: #6b7f7e">إجراءات</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr v-for="b in items" :key="b.id" class="hover:bg-slate-50 transition-all group">
+        <tbody>
+          <tr v-for="b in items" :key="b.id"
+            class="border-t transition-all group"
+            style="border-color: #f0f4f3"
+            onmouseover="this.style.background='#f8fbfb'"
+            onmouseout="this.style.background='transparent'">
             <td class="px-5 py-3.5">
-              <p class="font-semibold text-slate-900">{{ b.name }}</p>
-              <p class="text-xs text-slate-500">{{ b.ownerName }} · {{ b.phone }}</p>
+              <p class="font-bold" style="color: #0a2c2a">{{ b.name }}</p>
+              <p class="text-xs" style="color: #9aadac">{{ b.ownerName }} · {{ b.phone }}</p>
             </td>
-            <td class="px-5 py-3.5 text-slate-600">{{ b.category }}</td>
-            <td class="px-5 py-3.5 text-slate-600">{{ b.city }}</td>
+            <td class="px-5 py-3.5" style="color: #6b7f7e">{{ b.category }}</td>
+            <td class="px-5 py-3.5" style="color: #6b7f7e">{{ b.city }}</td>
             <td class="px-5 py-3.5">
               <div class="flex items-center gap-1">
-                <span class="text-yellow-400">⭐</span>
-                <span class="font-bold text-slate-800">{{ b.avgRating?.toFixed(1) || '0.0' }}</span>
-                <span class="text-xs text-slate-400">({{ b.totalReviews }})</span>
+                <span style="color: #f2b415">⭐</span>
+                <span class="font-bold" style="color: #0a2c2a">{{ b.avgRating?.toFixed(1) || '0.0' }}</span>
+                <span class="text-xs" style="color: #9aadac">({{ b.totalReviews }})</span>
               </div>
             </td>
             <td class="px-5 py-3.5">
               <span class="text-xs font-bold px-2.5 py-1 rounded-full"
-                :style="b.isActive ? 'background:#F0FDF4;color:#047857' : 'background:#F8FAFC;color:#94A3B8'">
+                :style="b.isActive
+                  ? 'background:#e8f5f4; color:#1d6560; border:1px solid #d1ece9'
+                  : 'background:#f0f4f3; color:#9aadac; border:1px solid #e2eded'">
                 {{ b.isActive ? '● نشط' : '● موقوف' }}
               </span>
             </td>
             <td class="px-5 py-3.5">
               <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <RouterLink :to="`/businesses/${b.id}`"
-                  class="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-                  style="background: #EFF6FF; color: #2563EB">تفاصيل</RouterLink>
+                  class="text-xs px-2.5 py-1.5 rounded-lg font-bold"
+                  style="background: #e8f5f4; color: #257d75">تفاصيل</RouterLink>
                 <button @click="toggleStatus(b)"
-                  class="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-                  :style="b.isActive ? 'background:#FEF2F2;color:#B91C1C' : 'background:#F0FDF4;color:#047857'">
+                  class="text-xs px-2.5 py-1.5 rounded-lg font-bold"
+                  :style="b.isActive
+                    ? 'background:#fef2f2;color:#b91c1c'
+                    : 'background:#e8f5f4;color:#1d6560'">
                   {{ b.isActive ? 'إيقاف' : 'تفعيل' }}
                 </button>
               </div>
@@ -61,12 +84,15 @@
           </tr>
         </tbody>
       </table>
-      <div class="px-5 py-3 border-t border-slate-100 flex justify-between items-center" style="background:#F8FAFC">
-        <p class="text-xs text-slate-500">إجمالي <span class="font-bold">{{ total }}</span> محل</p>
+      <div class="px-5 py-3 border-t flex justify-between items-center"
+        style="background: #f8fbfb; border-color: #f0f4f3">
+        <p class="text-xs" style="color: #9aadac">إجمالي <span class="font-black" style="color: #0a2c2a">{{ total }}</span> محل</p>
         <div class="flex gap-1">
           <button v-for="p in Math.min(totalPages, 5)" :key="p" @click="page=p; load()"
             class="w-8 h-8 rounded-lg text-xs font-bold transition-all"
-            :style="page===p ? 'background:#2563EB;color:white' : 'background:white;color:#475569;border:1px solid #E2E8F0'">
+            :style="page===p
+              ? 'background: linear-gradient(135deg, #257d75, #1d6560); color: white'
+              : 'background: white; color: #6b7f7e; border: 1.5px solid #e2eded'">
             {{ p }}
           </button>
         </div>
