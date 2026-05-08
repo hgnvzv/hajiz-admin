@@ -1,105 +1,112 @@
 <template>
-  <div dir="rtl" class="space-y-5">
+  <div dir="rtl" class="space-y-6">
     <!-- Filters -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap gap-3">
-      <div class="flex gap-2">
-        <button v-for="t in types" :key="t.id" @click="typeFilter=t.id; load()"
-          class="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-          :style="typeFilter===t.id ? 'background:linear-gradient(135deg,#2563EB,#1D4ED8);color:white' : 'background:#F1F5F9;color:#475569'">
-          {{ t.label }}
-        </button>
+    <div class="card">
+      <div class="p-6 flex flex-wrap gap-3">
+        <div class="flex gap-2 flex-wrap">
+          <button v-for="t in types" :key="t.id" @click="typeFilter=t.id; load()"
+            class="px-4 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105"
+            :class="typeFilter===t.id ? 'text-white shadow-lg' : 'bg-gray-100 text-teal-700 hover:bg-gray-200'"
+            :style="typeFilter===t.id ? 'background: linear-gradient(135deg, #257d75, #1d6560);' : ''">
+            {{ t.label }}
+          </button>
+        </div>
+        <input v-model="search" @input="load" placeholder="🔍 البحث بالاسم أو الهاتف..."
+          class="border-2 border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-teal-600 flex-1 min-w-48"
+          style="color: #1d6560;" />
+        <button @click="showCreate=true"
+          class="px-4 py-2 rounded-lg text-sm font-bold text-white shadow-lg transform hover:scale-105 transition-all"
+          style="background: linear-gradient(135deg, #f2b415, #d4990f);">➕ إضافة أدمن</button>
       </div>
-      <input v-model="search" @input="load" placeholder="بحث بالاسم أو الهاتف..."
-        class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 flex-1 min-w-48" />
-      <button @click="showCreate=true"
-        class="px-4 py-2 rounded-xl text-sm font-bold text-white"
-        style="background:linear-gradient(135deg,#2563EB,#1D4ED8)">+ إضافة أدمن</button>
     </div>
 
     <!-- Table -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <div class="inline-block w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+    <div class="card overflow-hidden">
+      <div v-if="loading" class="p-12 text-center">
+        <div class="inline-block w-8 h-8 border-4" style="border-color: #d1ece9; border-top-color: #257d75;"></div>
       </div>
       <table v-else class="w-full text-sm">
-        <thead style="background:#F8FAFC">
+        <thead style="background: linear-gradient(135deg, #257d75, #1d6560);">
           <tr>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">المستخدم</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">الهاتف</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">النوع</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">المحافظة</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">الحالة</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">التاريخ</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">إجراءات</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">المستخدم</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">الهاتف</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">النوع</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">المحافظة</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">الحالة</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">التاريخ</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">إجراءات</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr v-for="u in items" :key="u.id" class="hover:bg-slate-50 transition-all group">
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                  :style="`background: ${typeColor(u.userType)}`">{{ u.fullName?.[0] }}</div>
+        <tbody class="divide-y divide-gray-200">
+          <tr v-for="u in items" :key="u.id" class="hover:bg-gray-50 transition-all group">
+            <td class="px-6 py-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                  :style="`background: linear-gradient(135deg, ${typeColor(u.userType)}, ${typeColorDark(u.userType)})`">{{ u.fullName?.[0] }}</div>
                 <div>
-                  <p class="font-semibold text-slate-800">{{ u.fullName }}</p>
-                  <p v-if="u.extra" class="text-xs text-slate-400">{{ u.extra }}</p>
+                  <p class="font-semibold text-teal-700">{{ u.fullName }}</p>
+                  <p v-if="u.extra" class="text-xs text-gray-500">{{ u.extra }}</p>
                 </div>
               </div>
             </td>
-            <td class="px-5 py-3.5 text-slate-600">{{ u.phone }}</td>
-            <td class="px-5 py-3.5">
-              <span class="text-xs font-bold px-2.5 py-1 rounded-full"
+            <td class="px-6 py-4 text-gray-600">{{ u.phone }}</td>
+            <td class="px-6 py-4">
+              <span class="text-xs font-bold px-3 py-1 rounded-full"
                 :style="typeStyle(u.userType)">{{ typeLabel(u.userType) }}</span>
             </td>
-            <td class="px-5 py-3.5 text-slate-500 text-xs">{{ u.city || '—' }}</td>
-            <td class="px-5 py-3.5">
-              <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                :style="u.isActive ? 'background:#F0FDF4;color:#047857' : 'background:#F8FAFC;color:#94A3B8'">
-                {{ u.isActive ? 'نشط' : 'موقوف' }}
+            <td class="px-6 py-4 text-gray-600 text-xs">{{ u.city || '—' }}</td>
+            <td class="px-6 py-4">
+              <span class="text-xs font-bold px-3 py-1 rounded-full"
+                :style="u.isActive ? 'background: linear-gradient(135deg, #d1f5ea, #f0faf8); color: #0d5f54; border: 1px solid #a8e6d8;' : 'background: linear-gradient(135deg, #f0f4f3, #e8f5f4); color: #999; border: 1px solid #d1ece9;'">
+                {{ u.isActive ? '🟢 نشط' : '⚫ موقوف' }}
               </span>
             </td>
-            <td class="px-5 py-3.5 text-xs text-slate-500">{{ formatDate(u.createdAt) }}</td>
-            <td class="px-5 py-3.5">
+            <td class="px-6 py-4 text-xs text-gray-500">{{ formatDate(u.createdAt) }}</td>
+            <td class="px-6 py-4">
               <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button @click="toggleStatus(u)"
-                  class="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-                  :style="u.isActive ? 'background:#FEF2F2;color:#B91C1C' : 'background:#F0FDF4;color:#047857'">
-                  {{ u.isActive ? 'إيقاف' : 'تفعيل' }}
+                  class="text-xs px-3 py-2 rounded-lg font-bold transition-all"
+                  :style="u.isActive ? 'background: #fee; color: #a00;' : 'background: linear-gradient(135deg, #d1f5ea, #f0faf8); color: #0d5f54;'">
+                  {{ u.isActive ? '⏸️ إيقاف' : '▶️ تفعيل' }}
                 </button>
                 <button @click="deleteUser(u)"
-                  class="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-                  style="background:#F8FAFC;color:#64748B">حذف</button>
+                  class="text-xs px-3 py-2 rounded-lg font-bold"
+                  style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4); color: #1d6560;">🗑️ حذف</button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
-      <div class="px-5 py-3 border-t border-slate-100 flex justify-between" style="background:#F8FAFC">
-        <p class="text-xs text-slate-500">إجمالي <span class="font-bold">{{ total }}</span> مستخدم</p>
+      <div class="px-6 py-4 border-t border-gray-200 flex justify-between" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
+        <p class="text-xs text-gray-600 font-medium">إجمالي <span class="font-bold text-teal-700">{{ total }}</span> مستخدم</p>
       </div>
     </div>
 
     <!-- Create Admin Modal -->
-    <div v-if="showCreate" class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background:rgba(0,0,0,0.5)" @click.self="showCreate=false">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" dir="rtl">
-        <div class="flex justify-between mb-5">
-          <h3 class="font-bold text-slate-900 text-lg">إضافة مدير جديد</h3>
-          <button @click="showCreate=false" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+    <div v-if="showCreate" class="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+      style="background: rgba(0,0,0,0.5);" @click.self="showCreate=false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8" dir="rtl">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="font-bold text-teal-700 text-xl">➕ إضافة مدير جديد</h3>
+          <button @click="showCreate=false" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">✕</button>
         </div>
-        <div class="space-y-3">
+        <div class="space-y-4">
           <input v-model="newAdmin.fullName" placeholder="الاسم الكامل"
-            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-600"
+            style="color: #1d6560;" />
           <input v-model="newAdmin.phone" placeholder="رقم الهاتف" type="tel"
-            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-600"
+            style="color: #1d6560;" />
           <input v-model="newAdmin.password" placeholder="كلمة المرور" type="password"
-            class="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500" />
+            class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-600"
+            style="color: #1d6560;" />
         </div>
-        <div class="flex gap-3 mt-5">
+        <div class="flex gap-3 mt-6">
           <button @click="showCreate=false"
-            class="flex-1 py-2.5 rounded-xl text-sm border border-slate-200 text-slate-700">إلغاء</button>
+            class="flex-1 py-3 rounded-lg text-sm border-2 border-gray-200 text-teal-700 font-bold hover:bg-gray-50 transition-all">إلغاء</button>
           <button @click="createAdmin"
-            class="flex-1 py-2.5 rounded-xl text-sm text-white font-bold"
-            style="background:linear-gradient(135deg,#2563EB,#1D4ED8)">إضافة</button>
+            class="flex-1 py-3 rounded-lg text-sm text-white font-bold transform hover:scale-105 transition-all"
+            style="background: linear-gradient(135deg, #f2b415, #d4990f);">إضافة</button>
         </div>
       </div>
     </div>
@@ -157,13 +164,20 @@ async function createAdmin() {
 }
 
 function typeColor(t: string) {
-  return { customer: '#2563EB', business: '#059669', admin: '#DC2626' }[t] || '#64748B'
+  return { customer: '#257d75', business: '#f2b415', admin: '#dc2626' }[t] || '#999'
+}
+function typeColorDark(t: string) {
+  return { customer: '#1d6560', business: '#d4990f', admin: '#991b1b' }[t] || '#666'
 }
 function typeStyle(t: string) {
-  return { customer: 'background:#EFF6FF;color:#1D4ED8', business: 'background:#F0FDF4;color:#047857', admin: 'background:#FEF2F2;color:#B91C1C' }[t] || ''
+  return { 
+    customer: 'background: linear-gradient(135deg, #e8f5f4, #d1ece9); color: #1d6560; border: 1px solid #d1ece9;',
+    business: 'background: linear-gradient(135deg, #fef9e7, #fde68a); color: #b8860b; border: 1px solid #fde68a;',
+    admin: 'background: linear-gradient(135deg, #fee, #fff5f5); color: #a00; border: 1px solid #fcc;'
+  }[t] || ''
 }
 function typeLabel(t: string) {
-  return { customer: 'زبون', business: 'صاحب محل', admin: 'أدمن' }[t] || t
+  return { customer: '👤 زبون', business: '🏪 صاحب محل', admin: '🔑 أدمن' }[t] || t
 }
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short' })

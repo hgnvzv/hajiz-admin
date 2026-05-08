@@ -1,1 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 261.76 226.69"><path d="M161.096.001l-30.225 52.351L100.647.001H-.005l130.877 226.688L261.749.001z" fill="#41b883"/><path d="M161.096.001l-30.225 52.351L100.647.001H52.346l78.526 136.01L209.398.001z" fill="#34495e"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f2b415;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d4990f;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#257d75;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d6560;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#257d75;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#257d75;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="url(#bgGrad)" stroke="url(#tealGrad)" stroke-width="1" opacity="0.3"/>
+  
+  <!-- Main shape - Booking symbol -->
+  <g transform="translate(100, 100)">
+    <!-- Calendar-like base -->
+    <rect x="-45" y="-45" width="90" height="90" rx="12" fill="url(#tealGrad)" opacity="0.2"/>
+    
+    <!-- Gold accent top -->
+    <rect x="-45" y="-45" width="90" height="20" rx="12" fill="url(#goldGrad)"/>
+    
+    <!-- Teal main area -->
+    <rect x="-45" y="-25" width="90" height="70" rx="0" fill="url(#tealGrad)"/>
+    
+    <!-- Booking indicator lines -->
+    <circle cx="-25" cy="5" r="6" fill="#f2b415"/>
+    <circle cx="0" cy="5" r="6" fill="#ffffff" opacity="0.8"/>
+    <circle cx="25" cy="5" r="6" fill="#ffffff" opacity="0.8"/>
+    
+    <rect x="-25" y="20" width="8" height="20" rx="2" fill="#f2b415"/>
+    <rect x="-5" y="20" width="8" height="20" rx="2" fill="#ffffff" opacity="0.8"/>
+    <rect x="15" y="20" width="8" height="20" rx="2" fill="#ffffff" opacity="0.8"/>
+  </g>
+</svg>

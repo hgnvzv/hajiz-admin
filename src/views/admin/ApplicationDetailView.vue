@@ -1,81 +1,77 @@
 <template>
-  <div dir="rtl" class="space-y-5">
-    <div class="flex items-center gap-3">
-      <RouterLink to="/applications" class="text-blue-600 hover:underline text-sm">← طلبات الانضمام</RouterLink>
+  <div dir="rtl" class="space-y-6">
+    <RouterLink to="/applications" class="text-teal-700 hover:text-gold-600 text-sm font-bold flex items-center gap-1 transition-colors">← 📋 طلبات الانضمام</RouterLink>
+
+    <div v-if="loading" class="card p-12 text-center">
+      <div class="inline-block w-8 h-8 border-4 rounded-full animate-spin" style="border-color: #d1ece9; border-top-color: #257d75;"></div>
     </div>
 
-    <div v-if="loading" class="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-      <div class="inline-block w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-    </div>
-
-    <div v-else-if="app" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div v-else-if="app" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
       <!-- Main Info -->
-      <div class="lg:col-span-2 space-y-4">
+      <div class="lg:col-span-2 space-y-6">
         <!-- Header Card -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-          <div class="flex items-start justify-between mb-4">
+        <div class="card p-6">
+          <div class="flex items-start justify-between mb-6">
             <div>
-              <h2 class="text-xl font-bold text-slate-900">{{ app.businessName }}</h2>
-              <p class="text-slate-500 text-sm mt-1">{{ app.ownerName }} · {{ app.phone }}</p>
+              <h2 class="text-2xl font-bold text-teal-700">{{ app.businessName }}</h2>
+              <p class="text-gray-600 text-sm mt-2">📋 {{ app.ownerName }} • 📄 {{ app.phone }}</p>
             </div>
-            <span class="text-sm font-bold px-3 py-1.5 rounded-full" :style="statusStyle(app.status)">
+            <span class="text-sm font-bold px-4 py-2 rounded-full" :style="statusStyle(app.status)">
               {{ statusLabel(app.status) }}
             </span>
           </div>
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="p-3 rounded-xl" style="background: #F8FAFC">
-              <p class="text-xs text-slate-500 mb-0.5">التصنيف</p>
-              <p class="font-semibold text-slate-800">{{ app.categoryName }}</p>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="p-4 rounded-lg" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
+              <p class="text-xs text-gray-500 mb-1 font-medium">🏷️ التصنيف</p>
+              <p class="font-semibold text-teal-700">{{ app.categoryName }}</p>
             </div>
-            <div class="p-3 rounded-xl" style="background: #F8FAFC">
-              <p class="text-xs text-slate-500 mb-0.5">المحافظة</p>
-              <p class="font-semibold text-slate-800">{{ app.city }}</p>
+            <div class="p-4 rounded-lg" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
+              <p class="text-xs text-gray-500 mb-1 font-medium">📍 المحافظة</p>
+              <p class="font-semibold text-teal-700">{{ app.city }}</p>
             </div>
-            <div class="p-3 rounded-xl col-span-2" style="background: #F8FAFC">
-              <p class="text-xs text-slate-500 mb-0.5">العنوان</p>
-              <p class="font-semibold text-slate-800">{{ app.address }}</p>
+            <div class="p-4 rounded-lg col-span-2" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
+              <p class="text-xs text-gray-500 mb-1 font-medium">📮 العنوان</p>
+              <p class="font-semibold text-teal-700">{{ app.address }}</p>
             </div>
           </div>
-          <div v-if="app.description" class="mt-3 p-3 rounded-xl" style="background: #F8FAFC">
-            <p class="text-xs text-slate-500 mb-1">وصف المحل</p>
-            <p class="text-slate-700 text-sm leading-relaxed">{{ app.description }}</p>
+          <div v-if="app.description" class="mt-6 p-4 rounded-lg border-l-4" style="background: linear-gradient(135deg, #e8f5f4, #d1ece9); border-left-color: #257d75;">
+            <p class="text-xs text-gray-500 mb-2 font-medium">📝 وصف المحل</p>
+            <p class="text-teal-700 text-sm leading-relaxed">{{ app.description }}</p>
           </div>
         </div>
 
         <!-- Images -->
-        <div v-if="app.imageUrls?.length" class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">صور المحل</h3>
-          <div class="grid grid-cols-3 gap-2">
+        <div v-if="app.imageUrls?.length" class="card p-6">
+          <h3 class="font-bold text-teal-700 mb-4 flex items-center gap-2"><span>🖼️</span> صور المحل</h3>
+          <div class="grid grid-cols-3 gap-3">
             <img v-for="(img, i) in app.imageUrls" :key="i" :src="img"
-              class="w-full h-24 object-cover rounded-xl border border-slate-200"
+              class="w-full h-28 object-cover rounded-lg border-2 border-gray-200 hover:border-teal-600 transition-all cursor-pointer"
               @error="e => (e.target as any).src = 'https://via.placeholder.com/150?text=صورة'" />
           </div>
         </div>
 
         <!-- Working Hours -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">أوقات العمل</h3>
-          <div class="space-y-2">
+        <div class="card p-6">
+          <h3 class="font-bold text-teal-700 mb-4 flex items-center gap-2"><span>⏰</span> أوقات العمل</h3>
+          <div class="space-y-3">
             <div v-for="wh in app.workingHours" :key="wh.dayName"
-              class="flex items-center justify-between p-2.5 rounded-xl text-sm"
-              :style="wh.isOpen ? 'background: #EFF6FF' : 'background: #F8FAFC'">
-              <span class="font-semibold" :style="wh.isOpen ? 'color: #1D4ED8' : 'color: #94A3B8'">
-                {{ wh.dayName }}
-              </span>
-              <span v-if="wh.isOpen" class="text-slate-600">{{ wh.startTime }} — {{ wh.endTime }}</span>
-              <span v-else class="text-xs text-slate-400">إجازة</span>
+              class="flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-all"
+              :style="wh.isOpen ? 'background: linear-gradient(135deg, #e8f5f4, #d1ece9); color: #1d6560;' : 'background: linear-gradient(135deg, #f0f4f3, #e8f5f4); color: #999;'">
+              <span>{{ wh.dayName }}</span>
+              <span v-if="wh.isOpen">🕕 {{ wh.startTime }} — {{ wh.endTime }}</span>
+              <span v-else class="text-xs italic">إجازة</span>
             </div>
           </div>
         </div>
 
         <!-- Sub Categories -->
-        <div v-if="app.subCategories?.length" class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">الخدمات المقدمة</h3>
-          <div class="flex flex-wrap gap-2">
+        <div v-if="app.subCategories?.length" class="card p-6">
+          <h3 class="font-bold text-teal-700 mb-4 flex items-center gap-2"><span>✓️</span> الخدمات المقدمة</h3>
+          <div class="flex flex-wrap gap-3">
             <span v-for="sub in app.subCategories" :key="sub"
-              class="text-sm px-3 py-1.5 rounded-full font-medium"
-              style="background: #EFF6FF; color: #2563EB">{{ sub }}</span>
+              class="text-sm px-4 py-2 rounded-full font-semibold transition-all transform hover:scale-105"
+              style="background: linear-gradient(135deg, #e8f5f4, #d1ece9); color: #1d6560;">{{ sub }}</span>
           </div>
         </div>
       </div>

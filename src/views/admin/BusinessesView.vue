@@ -1,72 +1,78 @@
 <template>
-  <div dir="rtl" class="space-y-5">
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap gap-3">
-      <input v-model="search" @input="load" placeholder="بحث بالاسم أو الهاتف..."
-        class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500 flex-1 min-w-48" />
-      <select v-model="cityFilter" @change="load"
-        class="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-        <option value="">كل المحافظات</option>
-        <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.nameAr }}</option>
-      </select>
+  <div dir="rtl" class="space-y-6">
+    <!-- Filters -->
+    <div class="card">
+      <div class="p-6 flex flex-wrap gap-3">
+        <input v-model="search" @input="load" placeholder="🔍 البحث بالاسم أو الهاتف..."
+          class="border-2 border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-teal-600 flex-1 min-w-48"
+          style="color: #1d6560;" />
+        <select v-model="cityFilter" @change="load"
+          class="border-2 border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-teal-600"
+          style="color: #1d6560;">
+          <option value="">كل المحافظات</option>
+          <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.nameAr }}</option>
+        </select>
+      </div>
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <div class="inline-block w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+    <!-- Table -->
+    <div class="card overflow-hidden">
+      <div v-if="loading" class="p-12 text-center">
+        <div class="inline-block w-8 h-8 border-4" style="border-color: #d1ece9; border-top-color: #257d75; animation: spin 1s linear infinite"></div>
       </div>
       <table v-else class="w-full text-sm">
-        <thead style="background: #F8FAFC">
+        <thead style="background: linear-gradient(135deg, #257d75, #1d6560);">
           <tr>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">المحل</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">التصنيف</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">المحافظة</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">التقييم</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">الحالة</th>
-            <th class="text-right px-5 py-3 text-xs font-bold text-slate-500">إجراءات</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">المحل</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">التصنيف</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">المحافظة</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">التقييم</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">الحالة</th>
+            <th class="text-right px-6 py-4 text-xs font-bold text-white">إجراءات</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr v-for="b in items" :key="b.id" class="hover:bg-slate-50 transition-all group">
-            <td class="px-5 py-3.5">
-              <p class="font-semibold text-slate-900">{{ b.name }}</p>
-              <p class="text-xs text-slate-500">{{ b.ownerName }} · {{ b.phone }}</p>
+        <tbody class="divide-y divide-gray-200">
+          <tr v-for="b in items" :key="b.id" class="hover:bg-gray-50 transition-all group">
+            <td class="px-6 py-4">
+              <p class="font-semibold text-teal-700">{{ b.name }}</p>
+              <p class="text-xs text-gray-500">{{ b.ownerName }} • {{ b.phone }}</p>
             </td>
-            <td class="px-5 py-3.5 text-slate-600">{{ b.category }}</td>
-            <td class="px-5 py-3.5 text-slate-600">{{ b.city }}</td>
-            <td class="px-5 py-3.5">
+            <td class="px-6 py-4 text-gray-600">{{ b.category }}</td>
+            <td class="px-6 py-4 text-gray-600">{{ b.city }}</td>
+            <td class="px-6 py-4">
               <div class="flex items-center gap-1">
-                <span class="text-yellow-400">⭐</span>
-                <span class="font-bold text-slate-800">{{ b.avgRating?.toFixed(1) || '0.0' }}</span>
-                <span class="text-xs text-slate-400">({{ b.totalReviews }})</span>
+                <span class="text-yellow-500">⭐</span>
+                <span class="font-bold text-teal-700">{{ b.avgRating?.toFixed(1) || '0.0' }}</span>
+                <span class="text-xs text-gray-400">({{ b.totalReviews }})</span>
               </div>
             </td>
-            <td class="px-5 py-3.5">
-              <span class="text-xs font-bold px-2.5 py-1 rounded-full"
-                :style="b.isActive ? 'background:#F0FDF4;color:#047857' : 'background:#F8FAFC;color:#94A3B8'">
-                {{ b.isActive ? '● نشط' : '● موقوف' }}
+            <td class="px-6 py-4">
+              <span class="text-xs font-bold px-3 py-1 rounded-full"
+                :style="b.isActive ? 'background: linear-gradient(135deg, #d1f5ea, #f0faf8); color: #0d5f54; border: 1px solid #a8e6d8;' : 'background: linear-gradient(135deg, #f0f4f3, #e8f5f4); color: #999; border: 1px solid #d1ece9;'">
+                {{ b.isActive ? '🟢 نشط' : '⚫ موقوف' }}
               </span>
             </td>
-            <td class="px-5 py-3.5">
+            <td class="px-6 py-4">
               <div class="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <RouterLink :to="`/businesses/${b.id}`"
-                  class="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-                  style="background: #EFF6FF; color: #2563EB">تفاصيل</RouterLink>
+                  class="text-xs px-3 py-2 rounded-lg font-bold transition-all"
+                  style="background: linear-gradient(135deg, #e8f5f4, #d1ece9); color: #1d6560;">تفاصيل</RouterLink>
                 <button @click="toggleStatus(b)"
-                  class="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-                  :style="b.isActive ? 'background:#FEF2F2;color:#B91C1C' : 'background:#F0FDF4;color:#047857'">
-                  {{ b.isActive ? 'إيقاف' : 'تفعيل' }}
+                  class="text-xs px-3 py-2 rounded-lg font-bold transition-all"
+                  :style="b.isActive ? 'background: #fee; color: #a00;' : 'background: linear-gradient(135deg, #d1f5ea, #f0faf8); color: #0d5f54;'">
+                  {{ b.isActive ? '⏸️ إيقاف' : '▶️ تفعيل' }}
                 </button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
-      <div class="px-5 py-3 border-t border-slate-100 flex justify-between items-center" style="background:#F8FAFC">
-        <p class="text-xs text-slate-500">إجمالي <span class="font-bold">{{ total }}</span> محل</p>
+      <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
+        <p class="text-xs text-gray-600 font-medium">إجمالي <span class="font-bold text-teal-700">{{ total }}</span> محل</p>
         <div class="flex gap-1">
           <button v-for="p in Math.min(totalPages, 5)" :key="p" @click="page=p; load()"
-            class="w-8 h-8 rounded-lg text-xs font-bold transition-all"
-            :style="page===p ? 'background:#2563EB;color:white' : 'background:white;color:#475569;border:1px solid #E2E8F0'">
+            class="w-8 h-8 rounded-lg text-xs font-bold transition-all transform hover:scale-110"
+            :style="page===p ? 'background: linear-gradient(135deg, #257d75, #1d6560); color: white;' : 'background: white; color: #1d6560; border: 2px solid #d1ece9;'">
             {{ p }}
           </button>
         </div>
