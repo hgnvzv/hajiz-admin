@@ -7,6 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        primary: {
+          DEFAULT: '#2563EB',
+          dark: '#1D4ED8',
+          light: '#EFF6FF',
+        },
+        success: '#059669',
+        danger: '#DC2626',
+        warning: '#F59E0B',
+        border: '#E2E8F0',
+        surface: '#FFFFFF',
+        app: {
+          bg: '#F8FAFC',
+          text: '#0F172A',
+          muted: '#64748B',
+        },
         gold: {
           50: '#fffbf0',
           100: '#fef5dd',

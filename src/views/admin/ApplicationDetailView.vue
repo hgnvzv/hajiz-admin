@@ -1,192 +1,142 @@
 <template>
-  <div dir="rtl" class="space-y-6">
-    <RouterLink to="/applications" class="text-teal-700 hover:text-gold-600 text-sm font-bold flex items-center gap-1 transition-colors">← 📋 طلبات الانضمام</RouterLink>
+  <div class="space-y-6" dir="rtl">
+    <RouterLink to="/applications" class="inline-flex items-center text-sm font-bold text-blue-600">← رجوع إلى طلبات الانضمام</RouterLink>
 
-    <div v-if="loading" class="card p-12 text-center">
-      <div class="inline-block w-8 h-8 border-4 rounded-full animate-spin" style="border-color: #d1ece9; border-top-color: #257d75;"></div>
-    </div>
+    <div v-if="loading" class="rounded-2xl border border-slate-200 bg-white py-16"><LoadingSpinner /></div>
+    <template v-else-if="item">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p class="text-sm text-slate-500">طلب انضمام</p>
+            <h2 class="mt-1 text-2xl font-black text-slate-900">{{ item.businessName ?? item.name ?? '—' }}</h2>
+            <p class="mt-2 text-sm text-slate-500">{{ item.description ?? item.address ?? '—' }}</p>
+          </div>
+          <span class="rounded-full px-3 py-1 text-sm font-bold" :class="statusClass(item.status)">
+            {{ statusLabel(item.status) }}
+          </span>
+        </div>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          <Info label="صاحب المحل" :value="String(item.ownerName ?? item.userName ?? '—')" />
+          <Info label="الهاتف" :value="String(item.phone ?? item.ownerPhone ?? '—')" />
+          <Info label="المحافظة" :value="String(item.cityName ?? item.city ?? '—')" />
+          <Info label="التصنيف" :value="String(item.categoryName ?? '—')" />
+          <Info label="تاريخ الطلب" :value="formatDate(item.createdAt as string)" />
+          <Info label="العنوان" :value="String(item.address ?? '—')" />
+        </div>
+      </div>
 
-    <div v-else-if="app" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-      <!-- Main Info -->
-      <div class="lg:col-span-2 space-y-6">
-        <!-- Header Card -->
-        <div class="card p-6">
-          <div class="flex items-start justify-between mb-6">
-            <div>
-              <h2 class="text-2xl font-bold text-teal-700">{{ app.businessName }}</h2>
-              <p class="text-gray-600 text-sm mt-2">📋 {{ app.ownerName }} • 📄 {{ app.phone }}</p>
-            </div>
-            <span class="text-sm font-bold px-4 py-2 rounded-full" :style="statusStyle(app.status)">
-              {{ statusLabel(app.status) }}
+      <div class="grid gap-6 xl:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 class="text-lg font-black text-slate-900">التصنيفات الفرعية وساعات العمل</h3>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <span v-for="s in subCategories" :key="String(s.id ?? s.nameAr ?? s.name)" class="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
+              {{ s.nameAr ?? s.name ?? '—' }}
             </span>
+            <p v-if="!subCategories.length" class="text-sm text-slate-500">لا توجد تصنيفات فرعية</p>
           </div>
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div class="p-4 rounded-lg" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
-              <p class="text-xs text-gray-500 mb-1 font-medium">🏷️ التصنيف</p>
-              <p class="font-semibold text-teal-700">{{ app.categoryName }}</p>
+          <div class="mt-5 space-y-2 text-sm">
+            <div v-for="h in workingHours" :key="String(h.day ?? h.dayOfWeek)" class="flex justify-between rounded-xl bg-slate-50 px-3 py-2">
+              <span class="font-bold">{{ h.dayName ?? h.day ?? h.dayOfWeek ?? '—' }}</span>
+              <span>{{ h.openTime ?? h.from ?? '—' }} - {{ h.closeTime ?? h.to ?? '—' }}</span>
             </div>
-            <div class="p-4 rounded-lg" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
-              <p class="text-xs text-gray-500 mb-1 font-medium">📍 المحافظة</p>
-              <p class="font-semibold text-teal-700">{{ app.city }}</p>
-            </div>
-            <div class="p-4 rounded-lg col-span-2" style="background: linear-gradient(135deg, #f0f4f3, #e8f5f4);">
-              <p class="text-xs text-gray-500 mb-1 font-medium">📮 العنوان</p>
-              <p class="font-semibold text-teal-700">{{ app.address }}</p>
-            </div>
-          </div>
-          <div v-if="app.description" class="mt-6 p-4 rounded-lg border-l-4" style="background: linear-gradient(135deg, #e8f5f4, #d1ece9); border-left-color: #257d75;">
-            <p class="text-xs text-gray-500 mb-2 font-medium">📝 وصف المحل</p>
-            <p class="text-teal-700 text-sm leading-relaxed">{{ app.description }}</p>
+            <p v-if="!workingHours.length" class="text-slate-500">لا توجد ساعات عمل مسجلة</p>
           </div>
         </div>
 
-        <!-- Images -->
-        <div v-if="app.imageUrls?.length" class="card p-6">
-          <h3 class="font-bold text-teal-700 mb-4 flex items-center gap-2"><span>🖼️</span> صور المحل</h3>
-          <div class="grid grid-cols-3 gap-3">
-            <img v-for="(img, i) in app.imageUrls" :key="i" :src="img"
-              class="w-full h-28 object-cover rounded-lg border-2 border-gray-200 hover:border-teal-600 transition-all cursor-pointer"
-              @error="e => (e.target as any).src = 'https://via.placeholder.com/150?text=صورة'" />
-          </div>
-        </div>
-
-        <!-- Working Hours -->
-        <div class="card p-6">
-          <h3 class="font-bold text-teal-700 mb-4 flex items-center gap-2"><span>⏰</span> أوقات العمل</h3>
-          <div class="space-y-3">
-            <div v-for="wh in app.workingHours" :key="wh.dayName"
-              class="flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-all"
-              :style="wh.isOpen ? 'background: linear-gradient(135deg, #e8f5f4, #d1ece9); color: #1d6560;' : 'background: linear-gradient(135deg, #f0f4f3, #e8f5f4); color: #999;'">
-              <span>{{ wh.dayName }}</span>
-              <span v-if="wh.isOpen">🕕 {{ wh.startTime }} — {{ wh.endTime }}</span>
-              <span v-else class="text-xs italic">إجازة</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sub Categories -->
-        <div v-if="app.subCategories?.length" class="card p-6">
-          <h3 class="font-bold text-teal-700 mb-4 flex items-center gap-2"><span>✓️</span> الخدمات المقدمة</h3>
-          <div class="flex flex-wrap gap-3">
-            <span v-for="sub in app.subCategories" :key="sub"
-              class="text-sm px-4 py-2 rounded-full font-semibold transition-all transform hover:scale-105"
-              style="background: linear-gradient(135deg, #e8f5f4, #d1ece9); color: #1d6560;">{{ sub }}</span>
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 class="text-lg font-black text-slate-900">الصور والمستندات</h3>
+          <div class="mt-4 grid grid-cols-2 gap-3">
+            <a v-for="url in imageUrls" :key="url" :href="url" target="_blank" class="overflow-hidden rounded-xl border border-slate-200">
+              <img :src="url" alt="صورة الطلب" class="h-32 w-full object-cover" />
+            </a>
+            <p v-if="!imageUrls.length" class="col-span-2 text-sm text-slate-500">لا توجد صور مرفوعة</p>
           </div>
         </div>
       </div>
 
-      <!-- Actions Sidebar -->
-      <div class="space-y-4">
-        <!-- Action Card -->
-        <div v-if="app.status === 'Pending'" class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-4">اتخاذ قرار</h3>
-
-          <button @click="approve" :disabled="actionLoading"
-            class="w-full py-3 rounded-xl font-bold text-white mb-3 transition-all shadow-md"
-            style="background: linear-gradient(135deg, #059669, #047857)">
-            <span v-if="actionLoading === 'approve'">جاري القبول...</span>
-            <span v-else>✓ قبول الطلب</span>
-          </button>
-
-          <div class="space-y-2">
-            <textarea v-model="rejectReason" rows="3" placeholder="سبب الرفض (مطلوب عند الرفض)"
-              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-red-400 resize-none"></textarea>
-            <button @click="reject" :disabled="actionLoading || !rejectReason"
-              class="w-full py-2.5 rounded-xl font-bold transition-all text-sm"
-              style="border: 1.5px solid #DC2626; color: #DC2626"
-              :style="(!rejectReason || actionLoading) ? 'opacity: 0.5' : ''">
-              <span v-if="actionLoading === 'reject'">جاري الرفض...</span>
-              <span v-else>✕ رفض الطلب</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Already Reviewed -->
-        <div v-else class="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 class="font-bold text-slate-800 mb-3">نتيجة المراجعة</h3>
-          <div class="p-3 rounded-xl text-sm" :style="statusStyle(app.status)">
-            <p class="font-bold mb-1">{{ statusLabel(app.status) }}</p>
-            <p v-if="app.reviewedBy" class="text-xs opacity-70">بواسطة: {{ app.reviewedBy }}</p>
-            <p v-if="app.reviewedAt" class="text-xs opacity-70">{{ formatDate(app.reviewedAt) }}</p>
-            <p v-if="app.rejectionReason" class="mt-2 text-xs">السبب: {{ app.rejectionReason }}</p>
-          </div>
-        </div>
-
-        <!-- Quick Info -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 text-sm">
-          <div class="flex justify-between">
-            <span class="text-slate-500">تاريخ التقديم</span>
-            <span class="font-semibold text-slate-800">{{ formatDate(app.createdAt) }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-500">عدد الخدمات</span>
-            <span class="font-semibold text-slate-800">{{ app.subCategories?.length || 0 }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-500">الصور</span>
-            <span class="font-semibold text-slate-800">{{ app.imageUrls?.length || 0 }} صورة</span>
-          </div>
-        </div>
+      <div v-if="item.status === 'Pending'" class="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <button type="button" class="rounded-xl bg-emerald-600 px-5 py-2.5 font-bold text-white" @click="approve">قبول الطلب</button>
+        <button type="button" class="rounded-xl bg-red-600 px-5 py-2.5 font-bold text-white" @click="rejectOpen = true">رفض الطلب</button>
       </div>
-    </div>
+    </template>
+
+    <p v-else class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">لم يتم العثور على الطلب</p>
+
+    <ConfirmModal v-model="rejectOpen" title="رفض طلب الانضمام" confirm-text="رفض" confirm-color="danger" @confirm="reject">
+      <textarea v-model="rejectReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="سبب الرفض" />
+    </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, defineComponent, h, onMounted, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import api from '@/services/api'
+import { useToast } from 'vue-toastification'
+import { approveApplication, getApplicationDetail, rejectApplication } from '@/api'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import { apiMessage } from '@/utils/error'
+import { formatDate } from '@/utils/format'
+import { statusClass, statusLabel } from '@/utils/admin'
+
+const Info = defineComponent({
+  props: { label: { type: String, required: true }, value: { type: String, required: true } },
+  setup(props) {
+    return () => h('div', { class: 'rounded-xl bg-slate-50 p-4' }, [
+      h('p', { class: 'text-xs font-bold text-slate-500' }, props.label),
+      h('p', { class: 'mt-1 font-bold text-slate-900' }, props.value),
+    ])
+  },
+})
 
 const route = useRoute()
 const router = useRouter()
-const app = ref<any>(null)
+const toast = useToast()
 const loading = ref(true)
-const actionLoading = ref<string | null>(null)
+const item = ref<Record<string, unknown> | null>(null)
+const rejectOpen = ref(false)
 const rejectReason = ref('')
 
-onMounted(async () => {
+const subCategories = computed(() => (Array.isArray(item.value?.subCategories) ? item.value.subCategories as Record<string, unknown>[] : []))
+const workingHours = computed(() => (Array.isArray(item.value?.workingHours) ? item.value.workingHours as Record<string, unknown>[] : []))
+const imageUrls = computed(() => {
+  const raw = item.value?.images ?? item.value?.imageUrls ?? item.value?.documents
+  if (!Array.isArray(raw)) return []
+  return raw.map((x) => typeof x === 'string' ? x : String((x as Record<string, unknown>).url ?? '')).filter(Boolean)
+})
+
+async function load() {
+  loading.value = true
   try {
-    const res = await api.get(`/admin/applications/${route.params.id}`)
-    app.value = res.data
+    const res = await getApplicationDetail(String(route.params.id))
+    item.value = res.data as Record<string, unknown>
+  } catch (e) {
+    toast.error(apiMessage(e, 'تعذر تحميل تفاصيل الطلب'))
   } finally {
     loading.value = false
   }
-})
+}
 
 async function approve() {
-  actionLoading.value = 'approve'
+  if (!confirm('هل تريد قبول طلب الانضمام؟')) return
   try {
-    await api.put(`/admin/applications/${route.params.id}/approve`)
+    await approveApplication(String(route.params.id))
+    toast.success('تم قبول الطلب')
     router.push('/applications')
-  } finally {
-    actionLoading.value = null
+  } catch (e) {
+    toast.error(apiMessage(e))
   }
 }
 
 async function reject() {
-  if (!rejectReason.value) return
-  actionLoading.value = 'reject'
   try {
-    await api.put(`/admin/applications/${route.params.id}/reject`, { reason: rejectReason.value })
+    await rejectApplication(String(route.params.id), rejectReason.value || 'لم يتم تحديد سبب')
+    toast.success('تم رفض الطلب')
     router.push('/applications')
-  } finally {
-    actionLoading.value = null
+  } catch (e) {
+    toast.error(apiMessage(e))
   }
 }
 
-function statusStyle(s: string) {
-  const map: any = {
-    Pending: 'background: #FFFBEB; color: #B45309',
-    Approved: 'background: #F0FDF4; color: #047857',
-    Rejected: 'background: #FEF2F2; color: #B91C1C',
-  }
-  return map[s] || ''
-}
-function statusLabel(s: string) {
-  return { Pending: 'معلق', Approved: 'مقبول', Rejected: 'مرفوض' }[s] || s
-}
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'long', year: 'numeric' })
-}
+onMounted(load)
 </script>
