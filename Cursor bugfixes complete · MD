@@ -1,0 +1,668 @@
+# 🔧 Cursor AI — Critical Bug Fixes + Feature Completion
+
+> **Read this ENTIRE document before making changes.**
+> There are 15 bugs/missing features. Fix ALL of them.
+> Test each fix. No placeholders.
+
+---
+
+## 🚨 BUG 1: Firebase Not Working on iOS — White Screen
+
+### Problem
+App shows white screen on iOS because `Firebase.initializeApp()` crashes — no `GoogleService-Info.plist` for iOS.
+
+### Fix
+In `lib/main.dart`, wrap ALL Firebase calls in try/catch:
+
+```dart
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try { await Firebase.initializeApp(); } catch (_) {}
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Firebase — may fail on iOS if plist missing
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    debugPrint('Firebase init skipped: $e');
+  }
+  
+  // ... rest of init
+}
+```
+
+**IMPORTANT:** Search the ENTIRE codebase for `Firebase.initializeApp()` and `FirebaseMessaging` calls. Wrap ALL of them in try/catch. There may be calls in:
+- `lib/main.dart`
+- Auth providers
+- Notification services
+- Any realtime/lifecycle files
+
+---
+
+## 🚨 BUG 2: Token Expiry — Data Disappears After Hours
+
+### Problem
+After a few hours, API calls return 401 (token expired). The app shows empty data instead of refreshing the token or redirecting to login.
+
+### Fix
+In `lib/core/api/api_service.dart`, add a Dio interceptor for 401 handling:
+
+```dart
+_dio.interceptors.add(InterceptorsWrapper(
+  onError: (DioException error, handler) async {
+    if (error.response?.statusCode == 401) {
+      // Try refresh token
+      final refreshToken = await TokenStore.getRefreshToken();
+      if (refreshToken != null) {
+        try {
+          final res = await Dio().post(
+            '${AppConstants.baseUrl}/auth/refresh-token',
+            data: {'refreshToken': refreshToken},
+          );
+          final newToken = res.data['accessToken'];
+          final newRefresh = res.data['refreshToken'];
+          
+          // Save new tokens
+          await TokenStore.saveTokens(newToken, newRefresh);
+          
+          // Retry original request with new token
+          error.requestOptions.headers['Authorization'] = 'Bearer $newToken';
+          final retryResponse = await _dio.fetch(error.requestOptions);
+          return handler.resolve(retryResponse);
+        } catch (_) {
+          // Refresh failed — clear tokens and go to login
+          await TokenStore.clearAll();
+          // Navigate to login (use a global navigator key)
+        }
+      }
+    }
+    handler.next(error);
+  },
+));
+```
+
+**Also ensure:**
+- `TokenStore` has methods: `getRefreshToken()`, `saveTokens(access, refresh)`, `clearAll()`
+- On login, BOTH `accessToken` AND `refreshToken` are saved
+- Token keys: Customer=`hajiz_token`+`hajiz_refresh`, Business=`hajiz_business_token`+`hajiz_business_refresh`, Craftsman=`hajiz_craftsman_token`+`hajiz_craftsman_refresh`
+
+---
+
+## 🚨 BUG 3: Restaurant/Hall Booking Not Working
+
+### Problem
+When customer opens a business that is a restaurant (category bookingType = 2), the booking screen shows the normal service/staff selection instead of the reservation form (guests + occasion).
+
+### Root Cause
+The app doesn't check `bookingType` from the category to decide which booking flow to show.
+
+### Fix
+In `business_detail_screen.dart`, check the booking type:
+
+```dart
+// When user taps "Book" button:
+final bookingType = business['bookingType'] ?? business['categoryBookingType'] ?? 1;
+
+if (bookingType == 2) {
+  // Restaurant/Hall → Reservation flow
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => ReservationScreen(businessId: business['id']),
+  ));
+} else {
+  // Normal service → Booking flow  
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => BookingScreen(businessId: business['id']),
+  ));
+}
+```
+
+**The reservation screen must have:**
+1. Number of guests (counter: + and - buttons, minimum 1)
+2. Occasion selector (grid of cards from `GET /public/occasions`) — with "بدون مناسبة" as FIRST option (sends null)
+3. Date picker (next 14 days)
+4. Time picker
+5. Notes field (optional)
+6. Submit button → calls `POST /customer/bookings/reservation`
+
+```dart
+// API call for reservation:
+await ApiService().createReservationBooking({
+  'businessId': businessId,
+  'bookedAt': selectedDateTime.toUtc().toIso8601String(),
+  'numberOfGuests': guestCount,
+  'occasionId': selectedOccasionId,  // null if "بدون مناسبة"
+  'notes': notesController.text.isEmpty ? null : notesController.text,
+});
+```
+
+**The API endpoint:**
+```
+POST /customer/bookings/reservation
+Body: {
+  "businessId": "uuid",
+  "bookedAt": "2026-06-01T19:00:00Z",
+  "numberOfGuests": 8,
+  "occasionId": "uuid-or-null",  ← OPTIONAL
+  "notes": "optional"
+}
+```
+
+**How to know if a business is a restaurant:**
+The business detail API response includes the category info. Check:
+- `business['bookingType'] == 2` OR
+- `business['categoryBookingType'] == 2`
+If the field doesn't exist in the response, check the category from `/public/categories` and match by `categoryId`.
+
+---
+
+## 🚨 BUG 4: Business Owner Notifications Not Working
+
+### Problem
+When a customer books, the business owner doesn't receive a notification.
+
+### Fix
+1. **Verify SignalR connection** — Business owner app must connect to SignalR hub after login:
+```dart
+// After business login, connect to SignalR:
+final connection = HubConnectionBuilder()
+  .withUrl('${AppConstants.baseUrl.replaceAll('/api', '')}/hubs/notifications',
+    HttpConnectionOptions(
+      accessTokenFactory: () async => await TokenStore.getBusinessToken() ?? '',
+    ))
+  .withAutomaticReconnect()
+  .build();
+
+connection.on('notification', (args) {
+  // Show notification in app
+});
+
+connection.on('status_updated', (args) {
+  // Update booking/request status in real-time
+});
+
+await connection.start();
+```
+
+2. **Verify FCM token registration** — After business login:
+```dart
+try {
+  final fcmToken = await FirebaseMessaging.instance.getToken();
+  if (fcmToken != null) {
+    await ApiService().registerFcmToken(fcmToken, 'Business');
+  }
+} catch (_) {}
+```
+
+3. **Same for Craftsman** — register FCM token with `'Craftsman'` userType
+
+---
+
+## 🚨 BUG 5: Android Push Notifications Not Showing
+
+### Problem
+FCM notifications don't show when app is closed on Android.
+
+### Fix
+1. Ensure `flutter_local_notifications` is configured:
+
+```dart
+// In main.dart or a notification service:
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> initNotifications() async {
+  const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const ios = DarwinInitializationSettings();
+  await flutterLocalNotificationsPlugin.initialize(
+    const InitializationSettings(android: android, iOS: ios),
+  );
+  
+  // Create notification channel for Android
+  const channel = AndroidNotificationChannel(
+    'hajiz_channel', 'حاجز',
+    description: 'إشعارات حاجز',
+    importance: Importance.high,
+  );
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+}
+```
+
+2. Handle foreground messages:
+```dart
+FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  final notification = message.notification;
+  if (notification != null) {
+    flutterLocalNotificationsPlugin.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails('hajiz_channel', 'حاجز',
+          importance: Importance.high, priority: Priority.high),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+});
+```
+
+3. In `AndroidManifest.xml`, ensure:
+```xml
+<meta-data android:name="com.google.firebase.messaging.default_notification_channel_id"
+    android:value="hajiz_channel"/>
+```
+
+---
+
+## 🚨 BUG 6: Remove ALL Image URL Inputs — File Upload Only
+
+### Problem
+Some screens still show text fields for image URLs. All image inputs must be file upload only.
+
+### Fix
+Search the ENTIRE codebase for any `TextField` or `TextFormField` that has:
+- hint/label containing "رابط" or "URL" or "url" or "imageUrl" or "صورة"
+- Used for entering image links
+
+Replace ALL of them with file picker:
+```dart
+import 'package:image_picker/image_picker.dart';
+
+// Add to pubspec.yaml: image_picker: ^1.0.0
+
+File? _selectedImage;
+
+Widget _imagePicker() {
+  return GestureDetector(
+    onTap: () async {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (picked != null) setState(() => _selectedImage = File(picked.path));
+    },
+    child: Container(
+      height: 150, width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: _selectedImage != null
+        ? ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.file(_selectedImage!, fit: BoxFit.cover))
+        : const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_photo_alternate_outlined, size: 40, color: Color(0xFF94A3B8)),
+              SizedBox(height: 8),
+              Text('اختر صورة', style: TextStyle(color: Color(0xFF94A3B8))),
+            ],
+          ),
+    ),
+  );
+}
+```
+
+**Upload the file:**
+```dart
+// When submitting, upload file first:
+String? imageUrl;
+if (_selectedImage != null) {
+  final formData = FormData.fromMap({
+    'file': await MultipartFile.fromFile(_selectedImage!.path),
+  });
+  final res = await ApiService().dio.post('/upload/image', data: formData);
+  imageUrl = res.data['imageUrl'];
+}
+```
+
+**Screens to check:**
+- Business apply (business images)
+- Business images management
+- Craftsman apply (profile image)
+- Create service request (work photo)
+- Create advertisement (ad image)
+- Any other screen with image input
+
+---
+
+## 🚨 BUG 7: Business Owner — Booking Detail + Rejection Reason
+
+### Problem
+Business owner can't see full booking details. When rejecting, no reason selection.
+
+### Fix
+**Booking detail** — show all info:
+```
+Customer name, services, date/time, price, notes
+Phone: hidden if Pending, shown with WhatsApp link if Accepted
+```
+
+**Reject flow** — show bottom sheet with reason:
+```dart
+void _rejectBooking(String bookingId) {
+  String? selectedReason;
+  final reasons = [
+    'المحل مشغول في هذا الوقت',
+    'الخدمة غير متاحة حالياً', 
+    'الموظف غير متاح',
+    'سبب آخر',
+  ];
+  final customCtrl = TextEditingController();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setS) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('سبب الرفض', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 14),
+          ...reasons.map((r) => RadioListTile<String>(
+            value: r, groupValue: selectedReason, title: Text(r, style: const TextStyle(fontSize: 14)),
+            onChanged: (v) => setS(() => selectedReason = v),
+          )),
+          if (selectedReason == 'سبب آخر')
+            TextField(controller: customCtrl, decoration: const InputDecoration(labelText: 'اكتب السبب')),
+          const SizedBox(height: 14),
+          SizedBox(width: double.infinity, child: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            onPressed: selectedReason == null ? null : () async {
+              final reason = selectedReason == 'سبب آخر' ? customCtrl.text : selectedReason!;
+              await ApiService().rejectBooking(bookingId, reason);
+              Navigator.pop(ctx);
+              _load();
+            },
+            child: const Text('تأكيد الرفض'),
+          )),
+        ]),
+      ),
+    ),
+  );
+}
+```
+
+---
+
+## 🚨 BUG 8: Business Reports Not Showing
+
+### Problem
+Reports screen shows empty or errors.
+
+### Fix
+Verify the reports screen calls the correct API:
+```dart
+Future<void> _load() async {
+  final dashboard = await ApiService().getBusinessDashboard();
+  setState(() {
+    _stats = dashboard['stats'];
+    _weeklyBookings = dashboard['weeklyBookings'] ?? [];
+    _latestReviews = dashboard['latestReviews'] ?? [];
+    _today = dashboard['today'];
+  });
+}
+```
+
+**API:** `GET /business/dashboard`
+
+Show stats cards:
+- هذا الشهر: `stats['monthRevenue']` د.ع
+- إجمالي الحجوزات: `today['total']`
+- المكتملة: `today['completed']`
+- المعلقة: `stats['pendingRequests']`
+- التقييم: `stats['avgRating']` ⭐
+- عدد التقييمات: `stats['totalReviews']`
+
+---
+
+## 🚨 BUG 9: Craftsman Request Detail Not Opening
+
+### Problem
+Tapping a request in "طلبات متاحة" doesn't show details.
+
+### Fix
+Ensure the request list has `onTap`:
+```dart
+GestureDetector(
+  onTap: () => Navigator.push(context, MaterialPageRoute(
+    builder: (_) => CraftsmanRequestDetailScreen(request: requestData),
+  )),
+  child: _buildRequestCard(requestData),
+)
+```
+
+Create `CraftsmanRequestDetailScreen` if it doesn't exist — it must show:
+- Profession name, description, proposed price, date
+- Customer name (no phone until offer accepted)
+- Image if exists
+- **Submit offer form:** price, message, estimated hours
+- API: `POST /craftsman/offer` with body `{ serviceRequestId, offeredPrice, message?, estimatedHours? }`
+
+---
+
+## 🚨 BUG 10: Craftsman Profile Screen Incomplete
+
+### Problem
+Craftsman "حسابي" screen is empty or missing features compared to other account types.
+
+### Fix
+Craftsman profile must have:
+```
+┌──────────────────────────────┐
+│  👤 Avatar (initial letter)   │
+│  محمد خلفة براميك             │
+│  07707752003                  │
+│  بغداد — حي العامل            │
+│  ⭐ 4.0 (1 تقييم)             │
+│  🔧 45 عمل مكتمل             │
+├──────────────────────────────┤
+│  📝  تعديل الملف الشخصي       │
+│  🔧  حرفي (professions list)  │
+│  🔔  الإشعارات                │
+│  📢  تقديم شكوى              │
+│  ℹ️  المساعدة                 │
+│  🚪  تسجيل الخروج            │
+└──────────────────────────────┘
+```
+
+---
+
+## 🚨 BUG 11: Map Search + Current Location
+
+### Problem
+Map picker doesn't have search or "my location" button.
+
+### Fix
+Add to `LocationPicker` widget:
+
+```dart
+// Search field above map
+TextField(
+  decoration: const InputDecoration(
+    hintText: 'ابحث عن مكان...',
+    prefixIcon: Icon(Icons.search),
+  ),
+  onSubmitted: (query) async {
+    // Use OpenStreetMap Nominatim for free geocoding
+    final url = 'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=1';
+    final res = await Dio().get(url);
+    if (res.data.isNotEmpty) {
+      final lat = double.parse(res.data[0]['lat']);
+      final lng = double.parse(res.data[0]['lon']);
+      _mapController.move(LatLng(lat, lng), 15);
+      setState(() { _lat = lat; _lng = lng; });
+      widget.onLocationSelected(lat, lng);
+    }
+  },
+),
+
+// "My location" button
+FloatingActionButton.small(
+  onPressed: () async {
+    // Use geolocator package
+    final position = await Geolocator.getCurrentPosition();
+    _mapController.move(LatLng(position.latitude, position.longitude), 15);
+    setState(() { _lat = position.latitude; _lng = position.longitude; });
+    widget.onLocationSelected(position.latitude, position.longitude);
+  },
+  child: const Icon(Icons.my_location),
+),
+```
+
+**Add packages:**
+```yaml
+dependencies:
+  geolocator: ^12.0.0
+  geocoding: ^3.0.0
+```
+
+---
+
+## 🚨 BUG 12: Request Permissions on App Start
+
+### Fix
+In `main.dart` or splash screen, request permissions:
+
+```dart
+Future<void> _requestPermissions() async {
+  // Notification permission
+  try {
+    await FirebaseMessaging.instance.requestPermission(
+      alert: true, badge: true, sound: true,
+    );
+  } catch (_) {}
+  
+  // Location permission
+  final locationStatus = await Geolocator.checkPermission();
+  if (locationStatus == LocationPermission.denied) {
+    await Geolocator.requestPermission();
+  }
+}
+```
+
+Call this after splash screen loads.
+
+---
+
+## 🚨 BUG 13: Customer Favorites Screen
+
+### Problem
+"المفضلة" tab exists in bottom nav but screen is empty or crashes.
+
+### Fix
+Create/fix favorites screen:
+```dart
+class FavoritesScreen extends StatefulWidget { ... }
+
+// Load favorites:
+final data = await ApiService().getFavorites(page: _page);
+final items = data['items'] ?? [];
+
+// Each card: same as business card in home screen
+// With remove button (unfavorite)
+// Tap → go to business detail
+```
+
+---
+
+## 🚨 BUG 14: Business Detail — Services with Discounts
+
+### Problem
+When a service has an active discount, the detail screen should show the original price crossed out and the new discounted price.
+
+### Fix
+The API returns services with discount info:
+```json
+{
+  "name": "حلاقة شعر",
+  "price": 8000,           ← discounted price
+  "originalPrice": 10000,  ← original price (only if discount active)
+  "discountPercent": 20    ← discount percentage (only if active)
+}
+```
+
+In the service list:
+```dart
+if (service['originalPrice'] != null && service['originalPrice'] != service['price'])
+  Row(children: [
+    Text('${service['originalPrice']} د.ع',
+      style: const TextStyle(
+        decoration: TextDecoration.lineThrough,
+        color: Color(0xFF94A3B8), fontSize: 12)),
+    const SizedBox(width: 6),
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFFDC2626),
+        borderRadius: BorderRadius.circular(4)),
+      child: Text('${service['discountPercent']?.toStringAsFixed(0)}%',
+        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+    ),
+  ])
+else
+  Text('${service['price']} د.ع'),
+```
+
+---
+
+## 🚨 BUG 15: Category Icons Still Showing as Text
+
+### Problem
+Some category icons show as "ti-car" text instead of emoji.
+
+### Fix
+Create `lib/core/utils/icon_mapper.dart`:
+```dart
+class IconMapper {
+  static Widget build(String? icon, {double size = 28}) {
+    if (icon == null || icon.isEmpty) return Text('📦', style: TextStyle(fontSize: size));
+    if (!icon.startsWith('ti-')) return Text(icon, style: TextStyle(fontSize: size));
+    
+    // Map ti-* to emoji
+    final map = {
+      'ti-car': '🚗', 'ti-car-garage': '🚗',
+      'ti-scissors': '💇', 'ti-building-hospital': '🏥',
+      'ti-building': '🏨', 'ti-home': '🏠',
+      'ti-barbell': '🏋️', 'ti-tools-kitchen': '🍽️',
+      'ti-hammer': '🔨', 'ti-paint': '🎨',
+      'ti-bolt': '⚡', 'ti-wrench': '🔧',
+    };
+    return Text(map[icon] ?? '📦', style: TextStyle(fontSize: size));
+  }
+}
+```
+
+Replace ALL `Text(category['icon'])` with `IconMapper.build(category['icon'])` across the app.
+
+---
+
+## ✅ CHECKLIST
+
+- [ ] App doesn't crash on iOS (Firebase try/catch)
+- [ ] Token auto-refreshes on 401
+- [ ] Restaurant booking shows guests + occasion form
+- [ ] Occasion is optional
+- [ ] Business notifications arrive (SignalR + FCM)
+- [ ] Craftsman notifications arrive
+- [ ] Android push notifications work when app closed
+- [ ] No image URL text fields anywhere — all file upload
+- [ ] Business sees booking details, phone after acceptance only
+- [ ] Rejection requires selecting a reason
+- [ ] Business reports show real data
+- [ ] Craftsman request detail opens
+- [ ] Craftsman profile screen complete
+- [ ] Map has search + "my location" button
+- [ ] Permissions requested on first launch
+- [ ] Favorites screen works
+- [ ] Discounted prices show correctly
+- [ ] Category icons show as emoji
+
+**Fix everything. Test everything.** 🚀

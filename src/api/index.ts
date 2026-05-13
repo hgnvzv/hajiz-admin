@@ -107,6 +107,9 @@ export const toggleCategory = (id: string) => api.put(`/admin/categories/${id}/t
 export const createSubCategory = (data: Record<string, unknown>) =>
   api.post('/admin/categories/sub', data)
 
+export const updateSubCategory = (id: string, data: Record<string, unknown>) =>
+  api.put(`/admin/categories/sub/${id}`, data)
+
 export const toggleSubCategory = (id: string) => api.put(`/admin/categories/sub/${id}/toggle`)
 
 // ── Commissions ──
@@ -114,6 +117,27 @@ export const getCommissions = (params?: Record<string, unknown>) =>
   api.get('/admin/commissions', { params })
 
 export const markCommissionPaid = (id: string) => api.put(`/admin/commissions/${id}/mark-paid`)
+
+// ── Discounts ──
+export const getAdminDiscounts = (params?: Record<string, unknown>) =>
+  api.get('/admin/discounts', { params })
+
+export const approveDiscount = (id: string) => api.put(`/admin/discounts/${id}/approve`)
+
+export const rejectDiscount = (id: string, data?: { reason?: string | null }) =>
+  api.put(`/admin/discounts/${id}/reject`, data ?? {})
+
+export const updateDiscountOrder = (id: string, displayOrder: number) =>
+  api.put(`/admin/discounts/${id}/order`, { displayOrder })
+
+// ── Advertisements ──
+export const getAdminAdvertisements = (params?: Record<string, unknown>) =>
+  api.get('/admin/advertisements', { params })
+
+export const approveAdvertisement = (id: string) => api.put(`/admin/advertisements/${id}/approve`)
+
+export const rejectAdvertisement = (id: string, data?: { reason?: string | null }) =>
+  api.put(`/admin/advertisements/${id}/reject`, data ?? {})
 
 // ── Craftsmen ──
 export const getCraftsmen = (params?: Record<string, unknown>) =>

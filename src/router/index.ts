@@ -128,6 +128,18 @@ const router = createRouter({
           component: () => import('@/views/admin/CommissionsView.vue'),
         },
         {
+          path: 'discounts',
+          name: 'discounts',
+          meta: { title: 'العروض والخصومات' },
+          component: () => import('@/views/admin/DiscountsView.vue'),
+        },
+        {
+          path: 'advertisements',
+          name: 'advertisements',
+          meta: { title: 'الإعلانات' },
+          component: () => import('@/views/admin/AdvertisementsView.vue'),
+        },
+        {
           path: 'complaints',
           name: 'complaints',
           meta: { title: 'الشكاوى' },

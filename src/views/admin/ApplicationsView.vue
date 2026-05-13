@@ -31,11 +31,13 @@
       show-index
       @page-change="onPage"
     >
-      <template #cell-name="{ row }">
+      <template #cell-ownerName="{ row }">
+        {{ row.ownerName || '—' }}
+      </template>
+      <template #cell-businessName="{ row }">
         <RouterLink :to="`/applications/${row.id}`" class="font-bold text-blue-600 hover:underline">
-          {{ row.businessName ?? row.name ?? '—' }}
+          {{ row.businessName || '—' }}
         </RouterLink>
-        <p class="text-xs text-slate-500">{{ row.ownerName ?? row.userName ?? '—' }}</p>
       </template>
       <template #cell-status="{ row }">
         <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">
@@ -91,9 +93,10 @@ const filters = [
   { value: 'Rejected', label: 'مرفوضة' },
 ]
 const columns: ColumnDef[] = [
-  { key: 'name', label: 'المحل' },
+  { key: 'ownerName', label: 'صاحب الطلب' },
+  { key: 'businessName', label: 'المحل' },
   { key: 'phone', label: 'الهاتف' },
-  { key: 'cityName', label: 'المحافظة' },
+  { key: 'city', label: 'المحافظة' },
   { key: 'categoryName', label: 'التصنيف' },
   { key: 'status', label: 'الحالة' },
   { key: 'createdAt', label: 'تاريخ الطلب' },

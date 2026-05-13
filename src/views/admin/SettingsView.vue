@@ -13,8 +13,15 @@
         <div class="grid gap-4 md:grid-cols-2">
           <label v-for="field in section.fields" :key="field.key" class="block">
             <span class="mb-1 block text-sm font-bold text-slate-700">{{ field.label }}</span>
-            <input v-model.number="form[field.key]" type="number" step="0.01" min="0" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
+            <input
+              v-model.number="form[field.key]"
+              type="number"
+              :step="field.kind === 'int' ? 1 : 0.01"
+              min="0"
+              class="w-full rounded-xl border border-slate-200 px-4 py-3"
+            />
             <span v-if="field.percent" class="mt-1 block text-xs text-slate-500">النسبة الحالية: {{ percent(form[field.key]) }}</span>
+            <span v-if="field.hint" class="mt-1 block text-xs text-slate-500">{{ field.hint }}</span>
           </label>
         </div>
       </section>
@@ -45,6 +52,18 @@ type SettingsKey =
   | 'cancellationDeadlineHours'
   | 'reminderHoursBeforeBooking'
   | 'finalReminderHoursBeforeBooking'
+  | 'adPricePerDay'
+  | 'noShowPenaltyRate'
+  | 'noShowGracePeriodMinutes'
+
+type SettingsField = {
+  key: SettingsKey
+  label: string
+  percent?: boolean
+  hint?: string
+  /** Whole numbers (matches API int32 fields) */
+  kind?: 'decimal' | 'int'
+}
 
 const toast = useToast()
 const loading = ref(true)
@@ -59,27 +78,30 @@ const form = ref<Record<SettingsKey, number>>({
   cancellationDeadlineHours: 3,
   reminderHoursBeforeBooking: 6,
   finalReminderHoursBeforeBooking: 1,
+  adPricePerDay: 0,
+  noShowPenaltyRate: 0.1,
+  noShowGracePeriodMinutes: 30,
 })
-const sections = computed(() => [
+const sections = computed((): { icon: string; title: string; description: string; fields: SettingsField[] }[] => [
   {
     icon: '🏪',
     title: 'حجوزات الخدمات',
     description: 'نسب عمولة المحلات الخدمية',
-    fields: [{ key: 'serviceCommissionRate' as SettingsKey, label: 'عمولة المحلات الخدمية', percent: true }],
+    fields: [{ key: 'serviceCommissionRate', label: 'عمولة المحلات الخدمية', percent: true }],
   },
   {
     icon: '🍽️',
     title: 'المطاعم والقاعات',
     description: 'رسوم الحجوزات حسب عدد الأشخاص',
-    fields: [{ key: 'restaurantPerPersonFee' as SettingsKey, label: 'رسوم لكل شخص بالدولار' }],
+    fields: [{ key: 'restaurantPerPersonFee', label: 'رسوم لكل شخص بالدولار' }],
   },
   {
     icon: '🔧',
     title: 'خدمات الحرفيين',
     description: 'نسب الخدمة على الزبون والحرفي',
     fields: [
-      { key: 'craftsmanCustomerFeeRate' as SettingsKey, label: 'نسبة على الزبون', percent: true },
-      { key: 'craftsmanProviderFeeRate' as SettingsKey, label: 'نسبة على الحرفي', percent: true },
+      { key: 'craftsmanCustomerFeeRate', label: 'نسبة على الزبون', percent: true },
+      { key: 'craftsmanProviderFeeRate', label: 'نسبة على الحرفي', percent: true },
     ],
   },
   {
@@ -87,8 +109,8 @@ const sections = computed(() => [
     title: 'الإلغاء',
     description: 'سياسة غرامات ومهلة الإلغاء',
     fields: [
-      { key: 'cancellationPenaltyRate' as SettingsKey, label: 'نسبة غرامة الإلغاء', percent: true },
-      { key: 'cancellationDeadlineHours' as SettingsKey, label: 'مهلة الإلغاء بالساعات' },
+      { key: 'cancellationPenaltyRate', label: 'نسبة غرامة الإلغاء', percent: true },
+      { key: 'cancellationDeadlineHours', label: 'مهلة الإلغاء بالساعات', kind: 'int' },
     ],
   },
   {
@@ -96,8 +118,28 @@ const sections = computed(() => [
     title: 'التذكيرات',
     description: 'مواعيد إشعارات التذكير قبل الحجز',
     fields: [
-      { key: 'reminderHoursBeforeBooking' as SettingsKey, label: 'تذكير قبل الموعد بالساعات' },
-      { key: 'finalReminderHoursBeforeBooking' as SettingsKey, label: 'تذكير نهائي بالساعات' },
+      { key: 'reminderHoursBeforeBooking', label: 'تذكير قبل الموعد بالساعات', kind: 'int' },
+      { key: 'finalReminderHoursBeforeBooking', label: 'تذكير نهائي بالساعات', kind: 'int' },
+    ],
+  },
+  {
+    icon: '📺',
+    title: 'الإعلانات',
+    description: 'تسعير الإعلانات في التطبيق',
+    fields: [{ key: 'adPricePerDay', label: 'سعر الإعلان اليومي (د.ع)' }],
+  },
+  {
+    icon: '🚫',
+    title: 'عدم الحضور',
+    description: 'غرامة الزبائن عند عدم الحضور',
+    fields: [
+      {
+        key: 'noShowPenaltyRate',
+        label: 'نسبة غرامة عدم الحضور',
+        percent: true,
+        hint: 'مثال: 0.10 يعني 10%',
+      },
+      { key: 'noShowGracePeriodMinutes', label: 'مهلة عدم الحضور (دقيقة)', kind: 'int' },
     ],
   },
 ])

@@ -1,5 +1,12 @@
 <template>
   <div class="space-y-6" dir="rtl">
+    <div class="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div v-for="card in summaryCards" :key="card.label" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p class="text-xs font-bold text-slate-500">{{ card.label }}</p>
+        <p class="mt-2 text-2xl font-black text-slate-900">{{ card.value }}</p>
+      </div>
+    </div>
+
     <div class="rounded-2xl border border-border bg-surface p-4 shadow-sm">
       <div class="flex flex-wrap items-end gap-3">
         <div class="min-w-[180px] flex-1">
@@ -10,10 +17,11 @@
           <label class="mb-1 block text-xs font-bold text-[#6B7280]">الحالة</label>
           <select v-model="status" class="w-full rounded-xl border border-border px-3 py-2.5">
             <option value="">الكل</option>
-            <option value="pending">انتظار</option>
-            <option value="confirmed">مؤكد</option>
-            <option value="completed">مكتمل</option>
-            <option value="cancelled">ملغي</option>
+            <option value="Pending">انتظار</option>
+            <option value="Accepted">مقبول</option>
+            <option value="Completed">مكتمل</option>
+            <option value="Cancelled">ملغي</option>
+            <option value="Rejected">مرفوض</option>
           </select>
         </div>
         <div class="w-full sm:w-36">
@@ -55,8 +63,28 @@
       show-index
       @page-change="onPage"
     >
-      <template #cell-appointmentDate="{ row }">
-        {{ formatDateShort(row.appointmentDate as string) }}
+      <template #cell-customerName="{ row }">
+        <div>
+          <p class="font-bold text-slate-900">{{ row.customerName ?? '—' }}</p>
+          <p class="text-xs text-slate-500">{{ row.customerPhone ?? '—' }}</p>
+        </div>
+      </template>
+      <template #cell-businessName="{ row }">
+        <div>
+          <p class="font-bold text-slate-900">{{ row.businessName ?? '—' }}</p>
+          <p class="text-xs text-slate-500">الموظف: {{ row.staffName ?? '—' }}</p>
+        </div>
+      </template>
+      <template #cell-services="{ row }">
+        <div class="flex flex-wrap gap-1">
+          <span v-for="service in servicesOf(row)" :key="service" class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">
+            {{ service }}
+          </span>
+          <span v-if="!servicesOf(row).length">—</span>
+        </div>
+      </template>
+      <template #cell-bookedAt="{ row }">
+        {{ formatDate(row.bookedAt as string) }}
       </template>
       <template #cell-totalPrice="{ row }">
         {{ formatMoney(row.totalPrice as number) }}
@@ -65,7 +93,12 @@
         {{ formatMoney(row.commission as number) }}
       </template>
       <template #cell-status="{ row }">
-        <StatusBadge :status="String(row.status ?? 'pending')" />
+        <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">
+          {{ statusLabel(row.status) }}
+        </span>
+      </template>
+      <template #cell-createdAt="{ row }">
+        {{ formatDateShort(row.createdAt as string) }}
       </template>
       <template #cell-actions="{ row }">
         <div class="flex flex-wrap gap-1">
@@ -77,7 +110,7 @@
             تفاصيل
           </button>
           <button
-            v-if="row.status !== 'cancelled' && row.status !== 'completed'"
+            v-if="!['Cancelled', 'Completed', 'Rejected'].includes(String(row.status))"
             type="button"
             class="rounded-lg bg-red-50 px-2 py-1 text-xs font-bold text-danger"
             @click="openCancel(row)"
@@ -98,11 +131,14 @@
         <dl class="mt-4 space-y-2 text-sm">
           <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">المحل</dt><dd class="font-bold">{{ selected.businessName }}</dd></div>
           <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الزبون</dt><dd class="font-bold">{{ selected.customerName }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الخدمة</dt><dd class="font-bold">{{ selected.serviceName }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">التاريخ</dt><dd>{{ selected.appointmentDate }} {{ selected.appointmentTime }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">هاتف الزبون</dt><dd>{{ selected.customerPhone ?? '—' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الموظف</dt><dd>{{ selected.staffName ?? '—' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الخدمات</dt><dd class="font-bold">{{ servicesOf(selected).join('، ') || '—' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">موعد الحجز</dt><dd>{{ formatDate(selected.bookedAt as string) }}</dd></div>
           <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">المبلغ</dt><dd>{{ formatMoney(selected.totalPrice as number) }}</dd></div>
           <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">العمولة</dt><dd>{{ formatMoney(selected.commission as number) }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الحالة</dt><dd><StatusBadge :status="String(selected.status)" /></dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">تاريخ الإنشاء</dt><dd>{{ formatDate(selected.createdAt as string) }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الحالة</dt><dd><span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(selected.status)">{{ statusLabel(selected.status) }}</span></dd></div>
         </dl>
         <button type="button" class="mt-6 w-full rounded-xl bg-primary py-2 font-bold text-white" @click="detailOpen = false">
           إغلاق
@@ -123,26 +159,26 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useToast } from 'vue-toastification'
-import { getBookings, getBookingDetail, cancelBooking, getBusinesses } from '@/api'
+import { getBookings, cancelBooking, getBusinesses } from '@/api'
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
-import StatusBadge from '@/components/common/StatusBadge.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
-import { formatDateShort, formatMoney } from '@/utils/format'
+import { formatDate, formatDateShort, formatMoney } from '@/utils/format'
 import { apiMessage } from '@/utils/error'
+import { statusClass, statusLabel } from '@/utils/admin'
 
 const toast = useToast()
 
 const columns: ColumnDef[] = [
-  { key: 'businessName', label: 'المحل' },
   { key: 'customerName', label: 'الزبون' },
-  { key: 'serviceName', label: 'الخدمة' },
-  { key: 'appointmentDate', label: 'التاريخ' },
-  { key: 'appointmentTime', label: 'الوقت' },
+  { key: 'businessName', label: 'المحل والموظف' },
+  { key: 'services', label: 'الخدمات' },
+  { key: 'bookedAt', label: 'موعد الحجز' },
   { key: 'totalPrice', label: 'المبلغ' },
   { key: 'commission', label: 'العمولة' },
   { key: 'status', label: 'الحالة' },
+  { key: 'createdAt', label: 'تاريخ الإنشاء' },
   { key: 'actions', label: 'إجراءات' },
 ]
 
@@ -163,6 +199,21 @@ const selected = ref<Record<string, unknown> | null>(null)
 const showCancel = ref(false)
 const cancelRow = ref<Record<string, unknown> | null>(null)
 const cancelReason = ref('')
+const summary = ref<Record<string, unknown>>({})
+const summaryCards = computed(() => [
+  { label: 'الإجمالي', value: summary.value.total ?? total.value },
+  { label: 'بانتظار', value: summary.value.pending ?? 0 },
+  { label: 'مقبولة', value: summary.value.accepted ?? 0 },
+  { label: 'مكتملة', value: summary.value.completed ?? 0 },
+  { label: 'ملغية', value: summary.value.cancelled ?? 0 },
+  { label: 'مرفوضة', value: summary.value.rejected ?? 0 },
+])
+
+function servicesOf(row: Record<string, unknown>) {
+  const raw = row.services
+  if (!Array.isArray(raw)) return []
+  return raw.map((x) => String(x)).filter(Boolean)
+}
 
 async function loadBusinesses() {
   try {
@@ -186,9 +237,10 @@ async function load() {
       page: page.value,
       pageSize,
     })
-    const d = res.data as { items?: Record<string, unknown>[]; total?: number }
+    const d = res.data as { items?: Record<string, unknown>[]; total?: number; summary?: Record<string, unknown> }
     rows.value = d.items ?? []
-    total.value = d.total ?? 0
+    summary.value = d.summary ?? {}
+    total.value = d.total ?? Number(d.summary?.total ?? 0)
   } catch (e) {
     toast.error(apiMessage(e))
   } finally {
@@ -206,14 +258,9 @@ function onPage(p: number) {
   load()
 }
 
-async function openDetail(row: Record<string, unknown>) {
-  try {
-    const res = await getBookingDetail(String(row.id))
-    selected.value = res.data as Record<string, unknown>
-    detailOpen.value = true
-  } catch (e) {
-    toast.error(apiMessage(e))
-  }
+function openDetail(row: Record<string, unknown>) {
+  selected.value = row
+  detailOpen.value = true
 }
 
 function openCancel(row: Record<string, unknown>) {
@@ -241,23 +288,27 @@ function exportCsv() {
   const headers = [
     'المحل',
     'الزبون',
-    'الخدمة',
-    'التاريخ',
-    'الوقت',
+    'هاتف الزبون',
+    'الموظف',
+    'الخدمات',
+    'موعد الحجز',
     'المبلغ',
     'العمولة',
     'الحالة',
+    'تاريخ الإنشاء',
   ]
   const lines = rows.value.map((r) =>
     [
       r.businessName,
       r.customerName,
-      r.serviceName,
-      r.appointmentDate,
-      r.appointmentTime,
+      r.customerPhone,
+      r.staffName,
+      servicesOf(r).join(' | '),
+      r.bookedAt,
       r.totalPrice,
       r.commission,
       r.status,
+      r.createdAt,
     ]
       .map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`)
       .join(','),

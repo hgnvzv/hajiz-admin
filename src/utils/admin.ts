@@ -49,6 +49,7 @@ export function statusLabel(status: unknown) {
     Accepted: 'مقبولة',
     Completed: 'مكتملة',
     Cancelled: 'ملغاة',
+    Paid: 'مدفوعة',
     pending: 'قيد الانتظار',
     active: 'نشط',
     suspended: 'موقوف',
@@ -60,7 +61,7 @@ export function statusLabel(status: unknown) {
 
 export function statusClass(status: unknown) {
   const key = String(status ?? '')
-  if (['Approved', 'Resolved', 'active', 'completed', 'Accepted', 'Completed'].includes(key)) {
+  if (['Approved', 'Resolved', 'Paid', 'active', 'completed', 'Accepted', 'Completed'].includes(key)) {
     return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
   }
   if (['Pending', 'InProgress', 'pending'].includes(key)) {
@@ -99,4 +100,44 @@ export function userTypeLabel(type: unknown) {
     Craftsman: 'حرفي',
   }
   return map[String(type ?? '')] ?? String(type ?? '—')
+}
+
+export function discountStatusLabel(status: unknown) {
+  const map: Record<string, string> = {
+    Pending: 'معلق',
+    Approved: 'مقبول',
+    Rejected: 'مرفوض',
+    Expired: 'منتهي',
+  }
+  return map[String(status ?? '')] ?? String(status ?? '—')
+}
+
+export function discountStatusClass(status: unknown) {
+  const k = String(status ?? '')
+  if (k === 'Pending') return 'bg-amber-50 text-amber-800 ring-1 ring-amber-200'
+  if (k === 'Approved') return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+  if (k === 'Rejected') return 'bg-red-50 text-red-700 ring-1 ring-red-200'
+  if (k === 'Expired') return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
+  return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
+}
+
+export function advertisementStatusLabel(status: unknown) {
+  const map: Record<string, string> = {
+    Pending: 'معلق',
+    Approved: 'مقبول',
+    Active: 'نشط',
+    Rejected: 'مرفوض',
+    Expired: 'منتهي',
+  }
+  return map[String(status ?? '')] ?? String(status ?? '—')
+}
+
+export function advertisementStatusClass(status: unknown) {
+  const k = String(status ?? '')
+  if (k === 'Pending') return 'bg-amber-50 text-amber-800 ring-1 ring-amber-200'
+  if (k === 'Approved') return 'bg-blue-50 text-blue-700 ring-1 ring-blue-200'
+  if (k === 'Active') return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+  if (k === 'Rejected') return 'bg-red-50 text-red-700 ring-1 ring-red-200'
+  if (k === 'Expired') return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
+  return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
 }

@@ -22,6 +22,9 @@
           <Info label="التصنيف" :value="String(item.categoryName ?? '—')" />
           <Info label="تاريخ الطلب" :value="formatDate(item.createdAt as string)" />
           <Info label="العنوان" :value="String(item.address ?? '—')" />
+          <Info label="خط العرض" :value="coord(item.latitude)" />
+          <Info label="خط الطول" :value="coord(item.longitude)" />
+          <Info label="الوصف" :value="String(item.description ?? 'لا يوجد وصف')" />
         </div>
       </div>
 
@@ -29,15 +32,20 @@
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 class="text-lg font-black text-slate-900">التصنيفات الفرعية وساعات العمل</h3>
           <div class="mt-4 flex flex-wrap gap-2">
-            <span v-for="s in subCategories" :key="String(s.id ?? s.nameAr ?? s.name)" class="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
-              {{ s.nameAr ?? s.name ?? '—' }}
+            <span v-for="s in subCategories" :key="s" class="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
+              {{ s }}
             </span>
             <p v-if="!subCategories.length" class="text-sm text-slate-500">لا توجد تصنيفات فرعية</p>
           </div>
           <div class="mt-5 space-y-2 text-sm">
-            <div v-for="h in workingHours" :key="String(h.day ?? h.dayOfWeek)" class="flex justify-between rounded-xl bg-slate-50 px-3 py-2">
-              <span class="font-bold">{{ h.dayName ?? h.day ?? h.dayOfWeek ?? '—' }}</span>
-              <span>{{ h.openTime ?? h.from ?? '—' }} - {{ h.closeTime ?? h.to ?? '—' }}</span>
+            <div v-for="h in workingHours" :key="String(h.dayName ?? h.day ?? h.dayOfWeek)" class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+              <div>
+                <span class="font-bold text-slate-900">{{ h.dayName ?? h.day ?? h.dayOfWeek ?? '—' }}</span>
+                <span class="mr-2 text-slate-500">{{ h.startTime ?? h.openTime ?? h.from ?? '—' }} - {{ h.endTime ?? h.closeTime ?? h.to ?? '—' }}</span>
+              </div>
+              <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="h.isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
+                {{ h.isOpen ? 'مفتوح' : 'مغلق' }}
+              </span>
             </div>
             <p v-if="!workingHours.length" class="text-slate-500">لا توجد ساعات عمل مسجلة</p>
           </div>
@@ -50,6 +58,36 @@
               <img :src="url" alt="صورة الطلب" class="h-32 w-full object-cover" />
             </a>
             <p v-if="!imageUrls.length" class="col-span-2 text-sm text-slate-500">لا توجد صور مرفوعة</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-6 xl:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 class="text-lg font-black text-slate-900">الموقع</h3>
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <Info label="العنوان" :value="String(item.address ?? '—')" />
+            <Info label="المحافظة" :value="String(item.city ?? item.cityName ?? '—')" />
+            <Info label="Latitude" :value="coord(item.latitude)" />
+            <Info label="Longitude" :value="coord(item.longitude)" />
+          </div>
+          <a
+            v-if="hasCoords"
+            :href="mapUrl"
+            target="_blank"
+            class="mt-4 inline-flex rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
+          >
+            فتح الموقع على الخريطة
+          </a>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 class="text-lg font-black text-slate-900">المراجعة والرفض</h3>
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <Info label="سبب الرفض" :value="String(item.rejectionReason ?? 'لا يوجد')" />
+            <Info label="تمت المراجعة بواسطة" :value="String(item.reviewedBy ?? 'لم تتم المراجعة')" />
+            <Info label="تاريخ المراجعة" :value="item.reviewedAt ? formatDate(item.reviewedAt as string) : '—'" />
+            <Info label="الحالة الحالية" :value="statusLabel(item.status)" />
           </div>
         </div>
       </div>
@@ -97,13 +135,31 @@ const item = ref<Record<string, unknown> | null>(null)
 const rejectOpen = ref(false)
 const rejectReason = ref('')
 
-const subCategories = computed(() => (Array.isArray(item.value?.subCategories) ? item.value.subCategories as Record<string, unknown>[] : []))
+const subCategories = computed(() => {
+  const raw = item.value?.subCategories
+  if (!Array.isArray(raw)) return [] as string[]
+  return raw
+    .map((s) => {
+      if (typeof s === 'string') return s
+      const row = s as Record<string, unknown>
+      return String(row.nameAr ?? row.name ?? '')
+    })
+    .filter(Boolean)
+})
 const workingHours = computed(() => (Array.isArray(item.value?.workingHours) ? item.value.workingHours as Record<string, unknown>[] : []))
 const imageUrls = computed(() => {
   const raw = item.value?.images ?? item.value?.imageUrls ?? item.value?.documents
   if (!Array.isArray(raw)) return []
   return raw.map((x) => typeof x === 'string' ? x : String((x as Record<string, unknown>).url ?? '')).filter(Boolean)
 })
+const hasCoords = computed(() => item.value?.latitude != null && item.value?.longitude != null)
+const mapUrl = computed(() => `https://www.google.com/maps?q=${item.value?.latitude},${item.value?.longitude}`)
+
+function coord(v: unknown) {
+  const n = Number(v)
+  if (Number.isNaN(n)) return '—'
+  return n.toFixed(6)
+}
 
 async function load() {
   loading.value = true

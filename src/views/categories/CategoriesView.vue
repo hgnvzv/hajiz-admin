@@ -18,7 +18,7 @@
             <th class="px-4 py-3">الأيقونة</th>
             <th class="px-4 py-3">الاسم عربي</th>
             <th class="px-4 py-3">الاسم إنجليزي</th>
-            <th class="px-4 py-3">نوع الحجز</th>
+            <th class="px-4 py-3">الترتيب</th>
             <th class="px-4 py-3">المحلات</th>
             <th class="px-4 py-3">الحالة</th>
             <th class="px-4 py-3">إجراءات</th>
@@ -28,15 +28,19 @@
           <tr v-if="!items.length">
             <td colspan="7" class="px-4 py-14 text-center text-[#6B7280]">لا توجد تصنيفات</td>
           </tr>
-          <tr v-for="c in items" :key="c.id" class="hover:bg-primary-light/40">
-            <td class="px-4 py-3 text-2xl">{{ c.icon || '📁' }}</td>
+          <template v-for="c in items" :key="c.id">
+          <tr class="hover:bg-primary-light/40">
+            <td class="px-4 py-3">
+              <i
+                v-if="isTablerIcon(c.icon)"
+                :class="['ti', c.icon]"
+                style="color:#10B981; font-size:20px"
+              ></i>
+              <span v-else class="text-2xl">{{ c.icon || '📁' }}</span>
+            </td>
             <td class="px-4 py-3 font-bold">{{ c.nameAr }}</td>
             <td class="px-4 py-3 text-[#6B7280]">{{ c.name ?? c.nameEn ?? '—' }}</td>
-            <td class="px-4 py-3">
-              <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="bookingTypeClass(c.bookingType)">
-                {{ bookingTypeLabel(c.bookingType) }}
-              </span>
-            </td>
+            <td class="px-4 py-3">{{ c.displayOrder ?? 0 }}</td>
             <td class="px-4 py-3">{{ c.businessCount ?? 0 }}</td>
             <td class="px-4 py-3">
               <span
@@ -48,6 +52,12 @@
             </td>
             <td class="px-4 py-3">
               <button type="button" class="text-xs font-bold text-primary" @click="openEdit(c)">تعديل</button>
+              <button type="button" class="mr-2 text-xs font-bold text-amber-700" @click="toggleCategoryRow(c)">
+                {{ c.isActive ? 'تعطيل' : 'تفعيل' }}
+              </button>
+              <button type="button" class="mr-2 text-xs font-bold text-emerald-700" @click="openSubCreate(c)">
+                + فرعي
+              </button>
               <button
                 type="button"
                 class="mr-2 text-xs font-bold text-danger disabled:opacity-40"
@@ -58,6 +68,30 @@
               </button>
             </td>
           </tr>
+          <tr v-if="c.subCategories?.length" class="bg-slate-50/80">
+            <td colspan="7" class="px-6 py-4">
+              <div class="mb-2 text-xs font-black text-slate-500">التصنيفات الفرعية</div>
+              <div class="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                <div
+                  v-for="sub in c.subCategories"
+                  :key="sub.id"
+                  class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                >
+                  <div>
+                    <p class="text-sm font-bold text-slate-900">{{ sub.nameAr }}</p>
+                    <p class="text-xs text-slate-500">{{ sub.name }} • ترتيب {{ sub.displayOrder ?? 0 }}</p>
+                  </div>
+                  <div class="flex gap-2">
+                    <button type="button" class="text-xs font-bold text-primary" @click="openSubEdit(c, sub)">تعديل</button>
+                    <button type="button" class="text-xs font-bold text-amber-700" @click="toggleSub(sub)">
+                      {{ sub.isActive ? 'تعطيل' : 'تفعيل' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          </template>
         </tbody>
       </table>
     </div>
@@ -78,20 +112,10 @@
             <label class="mb-1 block text-xs font-bold">الاسم بالإنجليزية</label>
             <input v-model="form.name" class="w-full rounded-xl border border-border px-3 py-2.5" />
           </div>
+          <IconPickerInput v-model="form.icon" label="الأيقونة" />
           <div>
-            <label class="mb-1 block text-xs font-bold">نوع الحجز</label>
-            <select v-model="form.bookingType" class="w-full rounded-xl border border-border px-3 py-2.5">
-              <option value="Service">خدمية</option>
-              <option value="Reservation">حجز مناسبات</option>
-            </select>
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-bold">الأيقونة (رمز)</label>
-            <input v-model="form.icon" class="w-full rounded-xl border border-border px-3 py-2.5" placeholder="✂️" />
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-bold">الوصف</label>
-            <textarea v-model="form.description" rows="3" class="w-full rounded-xl border border-border px-3 py-2.5" />
+            <label class="mb-1 block text-xs font-bold">الترتيب</label>
+            <input v-model.number="form.displayOrder" type="number" min="0" class="w-full rounded-xl border border-border px-3 py-2.5" />
           </div>
           <div v-if="editingId" class="flex items-center gap-2">
             <input id="active" v-model="form.isActive" type="checkbox" class="size-4 accent-primary" />
@@ -99,6 +123,34 @@
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" class="rounded-xl border px-4 py-2 font-bold" @click="modalOpen = false">إلغاء</button>
+            <button type="submit" class="rounded-xl bg-primary px-4 py-2 font-bold text-white">حفظ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div
+      v-if="subModalOpen"
+      class="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4"
+      @click.self="subModalOpen = false"
+    >
+      <div class="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl" dir="rtl" @click.stop>
+        <h3 class="text-lg font-black">{{ editingSubId ? 'تعديل تصنيف فرعي' : 'تصنيف فرعي جديد' }}</h3>
+        <form class="mt-4 space-y-4" @submit.prevent="saveSub">
+          <div>
+            <label class="mb-1 block text-xs font-bold">الاسم بالعربية *</label>
+            <input v-model="subForm.nameAr" required class="w-full rounded-xl border border-border px-3 py-2.5" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-bold">الاسم بالإنجليزية *</label>
+            <input v-model="subForm.name" required class="w-full rounded-xl border border-border px-3 py-2.5" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-bold">الترتيب</label>
+            <input v-model.number="subForm.displayOrder" type="number" min="0" class="w-full rounded-xl border border-border px-3 py-2.5" />
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" class="rounded-xl border px-4 py-2 font-bold" @click="subModalOpen = false">إلغاء</button>
             <button type="submit" class="rounded-xl bg-primary px-4 py-2 font-bold text-white">حفظ</button>
           </div>
         </form>
@@ -119,9 +171,19 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useToast } from 'vue-toastification'
-import { getCategories, createCategory, updateCategory, deleteCategory } from '@/api'
+import {
+  createCategory,
+  createSubCategory,
+  deleteCategory,
+  getCategories,
+  toggleCategory,
+  toggleSubCategory,
+  updateCategory,
+  updateSubCategory,
+} from '@/api'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import IconPickerInput from '@/components/common/IconPickerInput.vue'
 import { apiMessage } from '@/utils/error'
 
 const toast = useToast()
@@ -135,9 +197,15 @@ const items = ref<
     nameEn?: string
     icon?: string
     isActive?: boolean
-    bookingType?: string
+    displayOrder?: number
     businessCount?: number
-    description?: string
+    subCategories?: {
+      id: string
+      name?: string
+      nameAr?: string
+      displayOrder?: number
+      isActive?: boolean
+    }[]
   }[]
 >([])
 
@@ -147,13 +215,20 @@ const form = ref({
   nameAr: '',
   name: '',
   icon: '',
-  description: '',
-  bookingType: 'Service',
+  displayOrder: 0,
   isActive: true,
 })
+const subModalOpen = ref(false)
+const editingSubId = ref<string | null>(null)
+const currentCategoryId = ref<string | null>(null)
+const subForm = ref({ categoryId: '', nameAr: '', name: '', displayOrder: 0 })
 
 const confirmDel = ref(false)
 const deleteId = ref<string | null>(null)
+
+function isTablerIcon(icon: unknown) {
+  return typeof icon === 'string' && icon.startsWith('ti-')
+}
 
 async function load() {
   loading.value = true
@@ -170,7 +245,7 @@ async function load() {
 
 function openCreate() {
   editingId.value = null
-  form.value = { nameAr: '', name: '', icon: '', description: '', bookingType: 'Service', isActive: true }
+  form.value = { nameAr: '', name: '', icon: '', displayOrder: items.value.length + 1, isActive: true }
   modalOpen.value = true
 }
 
@@ -180,24 +255,10 @@ function openEdit(c: (typeof items.value)[0]) {
     nameAr: c.nameAr ?? '',
     name: c.name ?? c.nameEn ?? '',
     icon: c.icon ?? '',
-    description: c.description ?? '',
-    bookingType: c.bookingType ?? 'Service',
+    displayOrder: c.displayOrder ?? 0,
     isActive: c.isActive !== false,
   }
   modalOpen.value = true
-}
-
-function bookingTypeLabel(v: unknown) {
-  const value = String(v ?? 'Service')
-  if (value === 'Reservation' || value === 'Event' || value === 'Restaurant') return 'حجز مناسبات'
-  return 'خدمية'
-}
-
-function bookingTypeClass(v: unknown) {
-  const value = String(v ?? 'Service')
-  return value === 'Reservation' || value === 'Event' || value === 'Restaurant'
-    ? 'bg-purple-50 text-purple-700'
-    : 'bg-blue-50 text-blue-700'
 }
 
 async function save() {
@@ -206,12 +267,9 @@ async function save() {
       nameAr: form.value.nameAr,
       name: form.value.name || undefined,
       icon: form.value.icon || undefined,
-      displayOrder: 0,
-      bookingType: form.value.bookingType,
-      description: form.value.description || undefined,
+      displayOrder: form.value.displayOrder,
     }
     if (editingId.value) {
-      payload.isActive = form.value.isActive
       await updateCategory(editingId.value, payload)
       toast.success('تم تحديث التصنيف')
     } else {
@@ -219,6 +277,72 @@ async function save() {
       toast.success('تم إنشاء التصنيف')
     }
     modalOpen.value = false
+    load()
+  } catch (e) {
+    toast.error(apiMessage(e))
+  }
+}
+
+async function toggleCategoryRow(c: (typeof items.value)[0]) {
+  try {
+    await toggleCategory(c.id)
+    toast.success('تم تحديث حالة التصنيف')
+    load()
+  } catch (e) {
+    toast.error(apiMessage(e))
+  }
+}
+
+function openSubCreate(c: (typeof items.value)[0]) {
+  editingSubId.value = null
+  currentCategoryId.value = c.id
+  subForm.value = {
+    categoryId: c.id,
+    nameAr: '',
+    name: '',
+    displayOrder: (c.subCategories?.length ?? 0) + 1,
+  }
+  subModalOpen.value = true
+}
+
+function openSubEdit(c: (typeof items.value)[0], sub: NonNullable<(typeof items.value)[0]['subCategories']>[0]) {
+  editingSubId.value = sub.id
+  currentCategoryId.value = c.id
+  subForm.value = {
+    categoryId: c.id,
+    nameAr: sub.nameAr ?? '',
+    name: sub.name ?? '',
+    displayOrder: sub.displayOrder ?? 0,
+  }
+  subModalOpen.value = true
+}
+
+async function saveSub() {
+  try {
+    const payload = {
+      categoryId: currentCategoryId.value ?? subForm.value.categoryId,
+      name: subForm.value.name,
+      nameAr: subForm.value.nameAr,
+      displayOrder: subForm.value.displayOrder,
+    }
+    if (editingSubId.value) {
+      await updateSubCategory(editingSubId.value, payload)
+      toast.success('تم تحديث التصنيف الفرعي')
+    } else {
+      await createSubCategory(payload)
+      toast.success('تم إنشاء التصنيف الفرعي')
+    }
+    subModalOpen.value = false
+    load()
+  } catch (e) {
+    toast.error(apiMessage(e))
+  }
+}
+
+async function toggleSub(sub: NonNullable<(typeof items.value)[0]['subCategories']>[0]) {
+  try {
+    await toggleSubCategory(sub.id)
+    toast.success('تم تحديث التصنيف الفرعي')
     load()
   } catch (e) {
     toast.error(apiMessage(e))

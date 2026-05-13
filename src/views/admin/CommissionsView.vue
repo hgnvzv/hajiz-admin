@@ -26,15 +26,24 @@
       show-index
       @page-change="onPage"
     >
-      <template #cell-amount="{ row }">{{ formatMoney(row.amount ?? row.totalAmount) }}</template>
-      <template #cell-status="{ row }">
-        <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">
-          {{ statusLabel(row.status) }}
+      <template #cell-businessName="{ row }">
+        <div>
+          <p class="font-bold text-slate-900">{{ row.businessName ?? '—' }}</p>
+          <p class="text-xs text-slate-500">{{ row.businessPhone ?? '—' }}</p>
+        </div>
+      </template>
+      <template #cell-bookingAmount="{ row }">{{ formatMoney(row.bookingAmount) }}</template>
+      <template #cell-commissionRate="{ row }">{{ percent(row.commissionRate) }}</template>
+      <template #cell-commissionAmount="{ row }">{{ formatMoney(row.commissionAmount) }}</template>
+      <template #cell-paymentStatus="{ row }">
+        <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.paymentStatus)">
+          {{ statusLabel(row.paymentStatus) }}
         </span>
       </template>
+      <template #cell-paidAt="{ row }">{{ row.paidAt ? formatDate(row.paidAt as string) : '—' }}</template>
       <template #cell-createdAt="{ row }">{{ formatDateShort(row.createdAt as string) }}</template>
       <template #cell-actions="{ row }">
-        <button v-if="row.status !== 'Paid'" type="button" class="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700" @click="markPaid(row)">
+        <button v-if="row.paymentStatus !== 'Paid'" type="button" class="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700" @click="markPaid(row)">
           تعليم كمدفوعة
         </button>
       </template>
@@ -48,7 +57,7 @@ import { useToast } from 'vue-toastification'
 import { getCommissions, markCommissionPaid } from '@/api'
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import { apiMessage } from '@/utils/error'
-import { formatDateShort, formatMoney } from '@/utils/format'
+import { formatDate, formatDateShort, formatMoney } from '@/utils/format'
 import { normalizePaged, statusClass, statusLabel } from '@/utils/admin'
 
 const toast = useToast()
@@ -59,10 +68,13 @@ const filters = [
 ]
 const columns: ColumnDef[] = [
   { key: 'businessName', label: 'المحل' },
-  { key: 'bookingId', label: 'رقم الحجز' },
-  { key: 'amount', label: 'المبلغ' },
-  { key: 'status', label: 'الحالة' },
-  { key: 'createdAt', label: 'التاريخ' },
+  { key: 'customerName', label: 'الزبون' },
+  { key: 'bookingAmount', label: 'قيمة الحجز' },
+  { key: 'commissionRate', label: 'نسبة العمولة' },
+  { key: 'commissionAmount', label: 'مبلغ العمولة' },
+  { key: 'paymentStatus', label: 'حالة الدفع' },
+  { key: 'paidAt', label: 'تاريخ الدفع' },
+  { key: 'createdAt', label: 'تاريخ الإنشاء' },
   { key: 'actions', label: 'إجراءات' },
 ]
 const rows = ref<Record<string, unknown>[]>([])
@@ -77,6 +89,12 @@ const summaryCards = computed(() => [
   { label: 'المعلقة', value: summary.value.pendingAmount },
   { label: 'المدفوعة', value: summary.value.paidAmount },
 ])
+
+function percent(v: unknown) {
+  const n = Number(v)
+  if (Number.isNaN(n)) return '—'
+  return `${(n * 100).toFixed(0)}%`
+}
 
 async function load() {
   loading.value = true
