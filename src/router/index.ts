@@ -128,6 +128,12 @@ const router = createRouter({
           component: () => import('@/views/admin/CommissionsView.vue'),
         },
         {
+          path: 'coupons',
+          name: 'coupons',
+          meta: { title: 'الكوبونات' },
+          component: () => import('@/views/admin/CouponsView.vue'),
+        },
+        {
           path: 'discounts',
           name: 'discounts',
           meta: { title: 'العروض والخصومات' },
@@ -160,7 +166,7 @@ const router = createRouter({
         {
           path: 'settings',
           name: 'settings',
-          meta: { title: 'الإعدادات المالية' },
+          meta: { title: 'الإعدادات' },
           component: () => import('@/views/admin/SettingsView.vue'),
         },
         {

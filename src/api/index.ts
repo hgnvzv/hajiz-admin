@@ -118,6 +118,15 @@ export const getCommissions = (params?: Record<string, unknown>) =>
 
 export const markCommissionPaid = (id: string) => api.put(`/admin/commissions/${id}/mark-paid`)
 
+// ── Coupons ──
+export const getAdminCoupons = () => api.get('/admin/coupons')
+
+export const createAdminCoupon = (data: Record<string, unknown>) => api.post('/admin/coupons', data)
+
+export const toggleAdminCoupon = (id: string) => api.put(`/admin/coupons/${id}/toggle`)
+
+export const deleteAdminCoupon = (id: string) => api.delete(`/admin/coupons/${id}`)
+
 // ── Discounts ──
 export const getAdminDiscounts = (params?: Record<string, unknown>) =>
   api.get('/admin/discounts', { params })

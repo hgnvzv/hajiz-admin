@@ -73,6 +73,7 @@ import {
   PhotoIcon,
   Squares2X2Icon,
   TagIcon,
+  TicketIcon,
   UserGroupIcon,
   WrenchScrewdriverIcon,
   ArrowRightOnRectangleIcon,
@@ -102,11 +103,12 @@ const items = computed(() => [
   { to: '/bookings', icon: CalendarDaysIcon, label: 'الحجوزات', badge: null },
   { to: '/service-requests', icon: MapPinIcon, label: 'الخدمات الموقعية', badge: null },
   { to: '/commissions', icon: BanknotesIcon, label: 'العمولات', badge: null },
+  { to: '/coupons', icon: TicketIcon, label: 'الكوبونات', badge: null },
   { to: '/discounts', icon: TagIcon, label: 'العروض والخصومات', badge: null },
   { to: '/advertisements', icon: PhotoIcon, label: 'الإعلانات', badge: null },
   { to: '/complaints', icon: ExclamationTriangleIcon, label: 'الشكاوى', badge: null },
   { to: '/broadcast', icon: MegaphoneIcon, label: 'الإشعارات الإعلانية', badge: null },
-  { to: '/settings', icon: Cog6ToothIcon, label: 'الإعدادات المالية', badge: null },
+  { to: '/settings', icon: Cog6ToothIcon, label: 'الإعدادات', badge: null },
 ])
 
 function isActive(path: string) {

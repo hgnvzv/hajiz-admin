@@ -84,63 +84,46 @@ const form = ref<Record<SettingsKey, number>>({
 })
 const sections = computed((): { icon: string; title: string; description: string; fields: SettingsField[] }[] => [
   {
-    icon: '🏪',
-    title: 'حجوزات الخدمات',
-    description: 'نسب عمولة المحلات الخدمية',
-    fields: [{ key: 'serviceCommissionRate', label: 'عمولة المحلات الخدمية', percent: true }],
-  },
-  {
-    icon: '🍽️',
-    title: 'المطاعم والقاعات',
-    description: 'رسوم الحجوزات حسب عدد الأشخاص',
-    fields: [{ key: 'restaurantPerPersonFee', label: 'رسوم لكل شخص بالدولار' }],
-  },
-  {
-    icon: '🔧',
-    title: 'خدمات الحرفيين',
-    description: 'نسب الخدمة على الزبون والحرفي',
+    icon: '💳',
+    title: 'رسوم وعمولات',
+    description: 'عمولات المحلات والمطاعم والحرفيين',
     fields: [
-      { key: 'craftsmanCustomerFeeRate', label: 'نسبة على الزبون', percent: true },
+      { key: 'serviceCommissionRate', label: 'عمولة المحلات الخدمية', percent: true },
+      { key: 'restaurantPerPersonFee', label: 'رسوم المطاعم والقاعات لكل شخص ($)' },
+      { key: 'craftsmanCustomerFeeRate', label: 'نسبة على الزبون (حرفي)', percent: true },
       { key: 'craftsmanProviderFeeRate', label: 'نسبة على الحرفي', percent: true },
     ],
   },
   {
     icon: '⏱️',
-    title: 'الإلغاء',
-    description: 'سياسة غرامات ومهلة الإلغاء',
+    title: 'إعدادات الإلغاء وعدم الحضور',
+    description: 'غرامات الإلغاء وعدم حضور الزبون',
     fields: [
       { key: 'cancellationPenaltyRate', label: 'نسبة غرامة الإلغاء', percent: true },
-      { key: 'cancellationDeadlineHours', label: 'مهلة الإلغاء بالساعات', kind: 'int' },
+      { key: 'cancellationDeadlineHours', label: 'مهلة الإلغاء (ساعات)', kind: 'int' },
+      {
+        key: 'noShowPenaltyRate',
+        label: 'نسبة غرامة عدم الحضور',
+        percent: true,
+        hint: '0.10 = 10%',
+      },
+      { key: 'noShowGracePeriodMinutes', label: 'مهلة عدم الحضور (دقائق)', kind: 'int' },
     ],
   },
   {
     icon: '🔔',
     title: 'التذكيرات',
-    description: 'مواعيد إشعارات التذكير قبل الحجز',
+    description: 'إشعارات التذكير قبل موعد الحجز',
     fields: [
-      { key: 'reminderHoursBeforeBooking', label: 'تذكير قبل الموعد بالساعات', kind: 'int' },
-      { key: 'finalReminderHoursBeforeBooking', label: 'تذكير نهائي بالساعات', kind: 'int' },
+      { key: 'reminderHoursBeforeBooking', label: 'تذكير قبل الموعد (ساعات)', kind: 'int' },
+      { key: 'finalReminderHoursBeforeBooking', label: 'تذكير نهائي (ساعات)', kind: 'int' },
     ],
   },
   {
     icon: '📺',
     title: 'الإعلانات',
     description: 'تسعير الإعلانات في التطبيق',
-    fields: [{ key: 'adPricePerDay', label: 'سعر الإعلان اليومي (د.ع)' }],
-  },
-  {
-    icon: '🚫',
-    title: 'عدم الحضور',
-    description: 'غرامة الزبائن عند عدم الحضور',
-    fields: [
-      {
-        key: 'noShowPenaltyRate',
-        label: 'نسبة غرامة عدم الحضور',
-        percent: true,
-        hint: 'مثال: 0.10 يعني 10%',
-      },
-      { key: 'noShowGracePeriodMinutes', label: 'مهلة عدم الحضور (دقيقة)', kind: 'int' },
-    ],
+    fields: [{ key: 'adPricePerDay', label: 'سعر الإعلان اليومي (د.ع)', kind: 'int' }],
   },
 ])
 
@@ -169,7 +152,7 @@ async function save() {
   saving.value = true
   try {
     await updatePlatformSettings(form.value)
-    toast.success('تم حفظ الإعدادات المالية')
+    toast.success('تم حفظ الإعدادات')
     load()
   } catch (e) {
     toast.error(apiMessage(e, 'تعذر حفظ الإعدادات'))
