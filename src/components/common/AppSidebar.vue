@@ -101,7 +101,7 @@ const items = computed(() => [
   { to: '/professions', icon: BriefcaseIcon, label: 'الحرف', badge: null },
   { to: '/occasions', icon: BellAlertIcon, label: 'المناسبات', badge: null },
   { to: '/bookings', icon: CalendarDaysIcon, label: 'الحجوزات', badge: null },
-  { to: '/service-requests', icon: MapPinIcon, label: 'الخدمات الموقعية', badge: null },
+  // { to: '/service-requests', icon: MapPinIcon, label: 'الخدمات الموقعية', badge: null },
   { to: '/commissions', icon: BanknotesIcon, label: 'العمولات', badge: null },
   { to: '/coupons', icon: TicketIcon, label: 'الكوبونات', badge: null },
   { to: '/discounts', icon: TagIcon, label: 'العروض والخصومات', badge: null },
