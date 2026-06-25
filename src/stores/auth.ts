@@ -41,6 +41,9 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('admin_user')
     localStorage.removeItem('hajiz_admin_token')
     localStorage.removeItem('hajiz_admin_user')
+    void import('@/stores/notifications').then(({ useNotificationsStore }) => {
+      useNotificationsStore().disconnect()
+    })
     void import('@/router').then((m) => m.default.push('/login'))
   }
 

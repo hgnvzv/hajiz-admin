@@ -92,6 +92,12 @@ const router = createRouter({
           component: () => import('@/views/bookings/BookingsView.vue'),
         },
         {
+          path: 'credits/top-up-requests',
+          name: 'credits-top-up-requests',
+          meta: { title: 'طلبات شحن Credits' },
+          component: () => import('@/views/admin/CreditsTopUpRequestsView.vue'),
+        },
+        {
           path: 'categories',
           name: 'categories',
           meta: { title: 'التصنيفات' },

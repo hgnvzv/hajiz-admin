@@ -5,6 +5,9 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+export const API_ORIGIN = (api.defaults.baseURL ?? '').replace(/\/api\/?$/, '')
+export const NOTIFICATIONS_HUB_URL = `${API_ORIGIN}/hubs/notifications`
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_token') || localStorage.getItem('hajiz_admin_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -89,8 +92,8 @@ export const getBookings = (params?: Record<string, unknown>) =>
 
 export const getBookingDetail = (id: string) => api.get(`/admin/bookings/${id}`)
 
-export const cancelBooking = (id: string, reason: string) =>
-  api.put(`/admin/bookings/${id}/cancel`, { reason })
+export const cancelBooking = (id: string, reason?: string) =>
+  api.put(`/admin/bookings/${id}/cancel`, reason?.trim() ? { reason: reason.trim() } : {})
 
 // ── Categories ──
 export const getCategories = () => api.get('/admin/categories')
@@ -235,6 +238,21 @@ export const sendNotification = (data: Record<string, unknown>) =>
 export const markNotificationRead = (id: string) => api.put(`/admin/notifications/${id}/read`)
 
 export const markAllNotificationsRead = () => api.put('/admin/notifications/read-all')
+
+// ── Credits Top-up ──
+export const getCreditTopUpRequests = (params?: Record<string, unknown>) =>
+  api.get('/admin/credits/top-up-requests', { params })
+
+export const getCreditTopUpRequestDetail = (id: string) =>
+  api.get(`/admin/credits/top-up-requests/${id}`)
+
+export const approveCreditTopUpRequest = (
+  id: string,
+  data?: { actualCreditsAmount?: number },
+) => api.put(`/admin/credits/top-up-requests/${id}/approve`, data ?? {})
+
+export const rejectCreditTopUpRequest = (id: string, reason: string) =>
+  api.put(`/admin/credits/top-up-requests/${id}/reject`, { reason })
 
 // ── Reports ──
 export const getBookingsReport = (params?: Record<string, unknown>) =>

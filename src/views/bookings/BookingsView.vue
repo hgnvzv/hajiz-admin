@@ -140,20 +140,31 @@
           <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">تاريخ الإنشاء</dt><dd>{{ formatDate(selected.createdAt as string) }}</dd></div>
           <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الحالة</dt><dd><span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(selected.status)">{{ statusLabel(selected.status) }}</span></dd></div>
         </dl>
-        <button type="button" class="mt-6 w-full rounded-xl bg-primary py-2 font-bold text-white" @click="detailOpen = false">
-          إغلاق
-        </button>
+        <div class="mt-6 flex flex-col gap-2">
+          <button
+            v-if="selected && !['Cancelled', 'Completed', 'Rejected'].includes(String(selected.status))"
+            type="button"
+            class="w-full rounded-xl bg-red-50 py-2.5 font-bold text-danger ring-1 ring-red-200"
+            @click="openCancel(selected)"
+          >
+            إلغاء الحجز
+          </button>
+          <button type="button" class="w-full rounded-xl bg-primary py-2 font-bold text-white" @click="detailOpen = false">
+            إغلاق
+          </button>
+        </div>
       </div>
     </div>
 
     <ConfirmModal
       v-model="showCancel"
       title="إلغاء الحجز"
-      confirm-text="إلغاء الحجز"
+      message="سيتم إلغاء الحجز وإشعار الأطراف. سبب الإلغاء اختياري."
+      confirm-text="تأكيد الإلغاء"
       confirm-color="danger"
       @confirm="confirmCancel"
     >
-      <textarea v-model="cancelReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="السبب" />
+      <textarea v-model="cancelReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="سبب الإلغاء (اختياري)" />
     </ConfirmModal>
   </div>
 </template>
@@ -199,6 +210,7 @@ const selected = ref<Record<string, unknown> | null>(null)
 const showCancel = ref(false)
 const cancelRow = ref<Record<string, unknown> | null>(null)
 const cancelReason = ref('')
+const cancelLoading = ref(false)
 const summary = ref<Record<string, unknown>>({})
 const summaryCards = computed(() => [
   { label: 'الإجمالي', value: summary.value.total ?? total.value },
@@ -266,17 +278,22 @@ function openDetail(row: Record<string, unknown>) {
 function openCancel(row: Record<string, unknown>) {
   cancelRow.value = row
   cancelReason.value = ''
+  detailOpen.value = false
   showCancel.value = true
 }
 
 async function confirmCancel() {
-  if (!cancelRow.value?.id) return
+  if (!cancelRow.value?.id || cancelLoading.value) return
+  cancelLoading.value = true
   try {
-    await cancelBooking(String(cancelRow.value.id), cancelReason.value || '—')
-    toast.success('تم إلغاء الحجز')
+    const res = await cancelBooking(String(cancelRow.value.id), cancelReason.value)
+    const msg = (res.data as { message?: string })?.message
+    toast.success(msg ?? 'تم إلغاء الحجز بنجاح')
     load()
   } catch (e) {
-    toast.error(apiMessage(e))
+    toast.error(apiMessage(e, 'تعذر إلغاء الحجز'))
+  } finally {
+    cancelLoading.value = false
   }
 }
 

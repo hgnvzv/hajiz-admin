@@ -49,6 +49,7 @@ export function statusLabel(status: unknown) {
     Accepted: 'مقبولة',
     Completed: 'مكتملة',
     Cancelled: 'ملغاة',
+    Redeemed: 'مُستبدَل',
     Paid: 'مدفوعة',
     pending: 'قيد الانتظار',
     active: 'نشط',
@@ -61,7 +62,7 @@ export function statusLabel(status: unknown) {
 
 export function statusClass(status: unknown) {
   const key = String(status ?? '')
-  if (['Approved', 'Resolved', 'Paid', 'active', 'completed', 'Accepted', 'Completed'].includes(key)) {
+  if (['Approved', 'Resolved', 'Paid', 'Redeemed', 'active', 'completed', 'Accepted', 'Completed'].includes(key)) {
     return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
   }
   if (['Pending', 'InProgress', 'pending'].includes(key)) {

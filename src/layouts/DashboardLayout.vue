@@ -17,19 +17,34 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import AppSidebar from '@/components/common/AppSidebar.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import { useUiStore } from '@/stores/ui'
+import { useNotificationsStore } from '@/stores/notifications'
+import { useToast } from 'vue-toastification'
+import { notificationType } from '@/utils/notificationNavigation'
 
 const route = useRoute()
 const ui = useUiStore()
+const notifications = useNotificationsStore()
+const toast = useToast()
 
 const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'حاجز')
 
-onMounted(() => {
+onMounted(async () => {
   ui.refreshHeaderStats()
+  await notifications.connect((item) => {
+    if (notificationType(item) === 'credits_topup_request') {
+      toast.info(item.title, { timeout: 5000 })
+      void ui.refreshHeaderStats()
+    }
+  })
+})
+
+onUnmounted(() => {
+  void notifications.disconnect()
 })
 
 watch(

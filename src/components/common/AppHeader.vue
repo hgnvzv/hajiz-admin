@@ -28,20 +28,7 @@
         <span>{{ ui.pendingBusinessCount }} بانتظار</span>
       </RouterLink>
 
-      <button
-        type="button"
-        class="relative rounded-xl border border-border p-2 transition hover:bg-primary-light"
-        aria-label="الإشعارات"
-        @click="$router.push('/broadcast')"
-      >
-        <BellIcon class="h-6 w-6 text-[#1A1A2E]" />
-        <span
-          v-if="ui.unreadNotificationCount > 0"
-          class="absolute -left-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-black text-white"
-        >
-          {{ ui.unreadNotificationCount > 99 ? '99+' : ui.unreadNotificationCount }}
-        </span>
-      </button>
+      <NotificationBell />
 
       <div class="hidden items-center gap-2 sm:flex">
         <div
@@ -69,7 +56,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { Bars3Icon, BellIcon } from '@heroicons/vue/24/outline'
+import { Bars3Icon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
+import NotificationBell from '@/components/common/NotificationBell.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 

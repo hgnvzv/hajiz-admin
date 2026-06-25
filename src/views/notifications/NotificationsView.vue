@@ -60,6 +60,11 @@
         empty-text="لا توجد إشعارات"
         @page-change="onPage"
       >
+        <template #cell-title="{ row }">
+          <button type="button" class="font-bold text-primary hover:underline" @click="openNotification(row)">
+            {{ row.title }}
+          </button>
+        </template>
         <template #cell-body="{ row }">
           <span class="line-clamp-2">{{ row.body }}</span>
         </template>
@@ -94,6 +99,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import {
   getNotifications,
@@ -104,8 +110,12 @@ import {
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import { formatDate } from '@/utils/format'
 import { apiMessage } from '@/utils/error'
+import { notificationTargetRoute, notificationType } from '@/utils/notificationNavigation'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const toast = useToast()
+const router = useRouter()
+const notifications = useNotificationsStore()
 
 const columns: ColumnDef[] = [
   { key: 'title', label: 'العنوان' },
@@ -128,22 +138,32 @@ const body = ref('')
 const sending = ref(false)
 
 function targetLabel(row: Record<string, unknown>) {
-  const t = row.type ?? row.targetType
+  const t = notificationType(row)
   const m: Record<string, string> = {
     all_customers: 'الزبائن',
     all_businesses: 'المحلات',
     broadcast: 'عام',
+    credits_topup_request: 'طلب شحن Credits',
   }
-  return m[String(t)] ?? String(t ?? '—')
+  return m[t] ?? (t || '—')
+}
+
+function openNotification(row: Record<string, unknown>) {
+  const route = notificationTargetRoute(row)
+  if (route) {
+    if (!row.isRead) void markOne(row, false)
+    router.push(route)
+  }
 }
 
 async function load() {
   loading.value = true
   try {
     const res = await getNotifications({ page: page.value, pageSize })
-    const d = res.data as { items?: Record<string, unknown>[]; total?: number }
+    const d = res.data as { items?: Record<string, unknown>[]; total?: number; unreadCount?: number }
     rows.value = d.items ?? []
     total.value = d.total ?? 0
+    if (d.unreadCount != null) notifications.unreadCount = Number(d.unreadCount)
   } catch (e) {
     toast.error(apiMessage(e))
   } finally {
@@ -188,11 +208,12 @@ async function send() {
   }
 }
 
-async function markOne(row: Record<string, unknown>) {
+async function markOne(row: Record<string, unknown>, showToast = true) {
   try {
     await markNotificationRead(String(row.id))
-    toast.success('تم التحديث')
+    if (showToast) toast.success('تم التحديث')
     load()
+    void notifications.fetchNotifications()
   } catch (e) {
     toast.error(apiMessage(e))
   }
@@ -203,6 +224,7 @@ async function markAllRead() {
     await markAllNotificationsRead()
     toast.success('تم تعيين الكل كمقروء')
     load()
+    void notifications.fetchNotifications()
   } catch (e) {
     toast.error(apiMessage(e))
   }
