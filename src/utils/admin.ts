@@ -103,6 +103,41 @@ export function userTypeLabel(type: unknown) {
   return map[String(type ?? '')] ?? String(type ?? '—')
 }
 
+export function paymentMethodLabel(method: unknown) {
+  const map: Record<string, string> = {
+    Cash: 'كاش',
+    Wallet: 'محفظة',
+    cash: 'كاش',
+    wallet: 'محفظة',
+  }
+  const key = String(method ?? '')
+  return map[key] ?? (key || '—')
+}
+
+export function bookingPaymentStatusLabel(status: unknown) {
+  const map: Record<string, string> = {
+    Unpaid: 'غير مدفوع',
+    PaidWallet: 'مدفوع من المحفظة',
+    PaidCash: 'مدفوع كاش',
+  }
+  const key = String(status ?? '')
+  return map[key] ?? (key || '—')
+}
+
+export function bookingPaymentStatusClass(status: unknown) {
+  const key = String(status ?? '')
+  if (key === 'PaidWallet' || key === 'PaidCash') {
+    return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+  }
+  if (key === 'Unpaid') return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+  return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
+}
+
+export function displayStaffName(name: unknown) {
+  const v = String(name ?? '').trim()
+  return v || '—'
+}
+
 export function discountStatusLabel(status: unknown) {
   const map: Record<string, string> = {
     Pending: 'معلق',

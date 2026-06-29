@@ -24,6 +24,15 @@
             <option value="Rejected">مرفوض</option>
           </select>
         </div>
+        <div class="w-full sm:w-44">
+          <label class="mb-1 block text-xs font-bold text-[#6B7280]">حالة الدفع</label>
+          <select v-model="paymentStatusFilter" class="w-full rounded-xl border border-border px-3 py-2.5">
+            <option value="">الكل</option>
+            <option value="Unpaid">غير مدفوع</option>
+            <option value="PaidWallet">مدفوع من المحفظة</option>
+            <option value="PaidCash">مدفوع كاش</option>
+          </select>
+        </div>
         <div class="w-full sm:w-36">
           <label class="mb-1 block text-xs font-bold text-[#6B7280]">من</label>
           <input v-model="dateFrom" type="date" class="w-full rounded-xl border border-border px-3 py-2.5" />
@@ -54,7 +63,7 @@
 
     <DataTable
       :columns="columns"
-      :rows="rows"
+      :rows="displayRows"
       :loading="loading"
       :total="total"
       :page="page"
@@ -72,7 +81,7 @@
       <template #cell-businessName="{ row }">
         <div>
           <p class="font-bold text-slate-900">{{ row.businessName ?? '—' }}</p>
-          <p class="text-xs text-slate-500">الموظف: {{ row.staffName ?? '—' }}</p>
+          <p class="text-xs text-slate-500">الموظف: {{ displayStaffName(row.staffName) }}</p>
         </div>
       </template>
       <template #cell-services="{ row }">
@@ -87,10 +96,20 @@
         {{ formatDate(row.bookedAt as string) }}
       </template>
       <template #cell-totalPrice="{ row }">
-        {{ formatMoney(row.totalPrice as number) }}
+        {{ formatMoneyIQD(row.totalPrice) }}
+      </template>
+      <template #cell-paymentMethod="{ row }">
+        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+          {{ paymentMethodLabel(row.paymentMethod) }}
+        </span>
+      </template>
+      <template #cell-paymentStatus="{ row }">
+        <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="bookingPaymentStatusClass(row.paymentStatus)">
+          {{ bookingPaymentStatusLabel(row.paymentStatus) }}
+        </span>
       </template>
       <template #cell-commission="{ row }">
-        {{ formatMoney(row.commission as number) }}
+        {{ formatMoneyIQD(row.commission) }}
       </template>
       <template #cell-status="{ row }">
         <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">
@@ -122,37 +141,71 @@
     </DataTable>
 
     <div
-      v-if="detailOpen && selected"
+      v-if="detailOpen"
       class="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4"
       @click.self="detailOpen = false"
     >
       <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-surface p-6 shadow-xl" dir="rtl">
-        <h3 class="text-lg font-black">تفاصيل الحجز</h3>
-        <dl class="mt-4 space-y-2 text-sm">
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">المحل</dt><dd class="font-bold">{{ selected.businessName }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الزبون</dt><dd class="font-bold">{{ selected.customerName }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">هاتف الزبون</dt><dd>{{ selected.customerPhone ?? '—' }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الموظف</dt><dd>{{ selected.staffName ?? '—' }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الخدمات</dt><dd class="font-bold">{{ servicesOf(selected).join('، ') || '—' }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">موعد الحجز</dt><dd>{{ formatDate(selected.bookedAt as string) }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">المبلغ</dt><dd>{{ formatMoney(selected.totalPrice as number) }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">العمولة</dt><dd>{{ formatMoney(selected.commission as number) }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">تاريخ الإنشاء</dt><dd>{{ formatDate(selected.createdAt as string) }}</dd></div>
-          <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الحالة</dt><dd><span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(selected.status)">{{ statusLabel(selected.status) }}</span></dd></div>
-        </dl>
-        <div class="mt-6 flex flex-col gap-2">
-          <button
-            v-if="selected && !['Cancelled', 'Completed', 'Rejected'].includes(String(selected.status))"
-            type="button"
-            class="w-full rounded-xl bg-red-50 py-2.5 font-bold text-danger ring-1 ring-red-200"
-            @click="openCancel(selected)"
-          >
-            إلغاء الحجز
-          </button>
-          <button type="button" class="w-full rounded-xl bg-primary py-2 font-bold text-white" @click="detailOpen = false">
-            إغلاق
-          </button>
-        </div>
+        <div v-if="detailLoading" class="py-16"><LoadingSpinner /></div>
+        <template v-else-if="selected">
+          <h3 class="text-lg font-black">تفاصيل الحجز</h3>
+          <dl class="mt-4 space-y-2 text-sm">
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">المحل</dt><dd class="font-bold">{{ selected.businessName ?? '—' }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الزبون</dt><dd class="font-bold">{{ selected.customerName ?? '—' }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">هاتف الزبون</dt><dd>{{ selected.customerPhone ?? '—' }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الموظف</dt><dd>{{ displayStaffName(selected.staffName) }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الخدمات</dt><dd class="font-bold">{{ servicesOf(selected).join('، ') || '—' }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">موعد الحجز</dt><dd>{{ formatDate(selected.bookedAt as string) }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">المبلغ</dt><dd>{{ formatMoneyIQD(selected.totalPrice) }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">العمولة</dt><dd>{{ formatMoneyIQD(selected.commission) }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">تاريخ الإنشاء</dt><dd>{{ formatDate(selected.createdAt as string) }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-[#6B7280]">الحالة</dt><dd><span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(selected.status)">{{ statusLabel(selected.status) }}</span></dd></div>
+          </dl>
+
+          <section class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <h4 class="text-sm font-black text-slate-900">معلومات الدفع</h4>
+            <dl class="mt-3 space-y-2 text-sm">
+              <div class="flex justify-between gap-2">
+                <dt class="text-[#6B7280]">طريقة الدفع</dt>
+                <dd class="font-bold">{{ paymentMethodLabel(selected.paymentMethod) }}</dd>
+              </div>
+              <div class="flex justify-between gap-2">
+                <dt class="text-[#6B7280]">حالة الدفع</dt>
+                <dd>
+                  <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="bookingPaymentStatusClass(selected.paymentStatus)">
+                    {{ bookingPaymentStatusLabel(selected.paymentStatus) }}
+                  </span>
+                </dd>
+              </div>
+              <div v-if="selected.cashAmountReceived != null" class="flex justify-between gap-2">
+                <dt class="text-[#6B7280]">المبلغ المستلم كاش</dt>
+                <dd class="font-bold">{{ formatMoneyIQD(selected.cashAmountReceived) }}</dd>
+              </div>
+              <div v-if="selected.walletPaidAmount != null" class="flex justify-between gap-2">
+                <dt class="text-[#6B7280]">المبلغ المدفوع من المحفظة</dt>
+                <dd class="font-bold">{{ formatMoneyIQD(selected.walletPaidAmount) }}</dd>
+              </div>
+              <div v-if="selected.walletPaidAt" class="flex justify-between gap-2">
+                <dt class="text-[#6B7280]">تاريخ الدفع من المحفظة</dt>
+                <dd>{{ formatDate(selected.walletPaidAt as string) }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <div class="mt-6 flex flex-col gap-2">
+            <button
+              v-if="!['Cancelled', 'Completed', 'Rejected'].includes(String(selected.status))"
+              type="button"
+              class="w-full rounded-xl bg-red-50 py-2.5 font-bold text-danger ring-1 ring-red-200"
+              @click="openCancel(selected)"
+            >
+              إلغاء الحجز
+            </button>
+            <button type="button" class="w-full rounded-xl bg-primary py-2 font-bold text-white" @click="detailOpen = false">
+              إغلاق
+            </button>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -172,12 +225,20 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useToast } from 'vue-toastification'
-import { getBookings, cancelBooking, getBusinesses } from '@/api'
+import { getBookings, getBookingDetail, cancelBooking, getBusinesses } from '@/api'
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
-import { formatDate, formatDateShort, formatMoney } from '@/utils/format'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { formatDate, formatDateShort, formatMoneyIQD } from '@/utils/format'
 import { apiMessage } from '@/utils/error'
-import { statusClass, statusLabel } from '@/utils/admin'
+import {
+  bookingPaymentStatusClass,
+  bookingPaymentStatusLabel,
+  displayStaffName,
+  paymentMethodLabel,
+  statusClass,
+  statusLabel,
+} from '@/utils/admin'
 
 const toast = useToast()
 
@@ -187,6 +248,8 @@ const columns: ColumnDef[] = [
   { key: 'services', label: 'الخدمات' },
   { key: 'bookedAt', label: 'موعد الحجز' },
   { key: 'totalPrice', label: 'المبلغ' },
+  { key: 'paymentMethod', label: 'طريقة الدفع' },
+  { key: 'paymentStatus', label: 'حالة الدفع' },
   { key: 'commission', label: 'العمولة' },
   { key: 'status', label: 'الحالة' },
   { key: 'createdAt', label: 'تاريخ الإنشاء' },
@@ -200,18 +263,26 @@ const page = ref(1)
 const pageSize = 20
 const search = ref('')
 const status = ref('')
+const paymentStatusFilter = ref('')
 const dateFrom = ref('')
 const dateTo = ref('')
 const businessId = ref('')
 const businessOptions = ref<{ id: string; name: string }[]>([])
 
 const detailOpen = ref(false)
+const detailLoading = ref(false)
 const selected = ref<Record<string, unknown> | null>(null)
 const showCancel = ref(false)
 const cancelRow = ref<Record<string, unknown> | null>(null)
 const cancelReason = ref('')
 const cancelLoading = ref(false)
 const summary = ref<Record<string, unknown>>({})
+
+const displayRows = computed(() => {
+  if (!paymentStatusFilter.value) return rows.value
+  return rows.value.filter((r) => String(r.paymentStatus) === paymentStatusFilter.value)
+})
+
 const summaryCards = computed(() => [
   { label: 'الإجمالي', value: summary.value.total ?? total.value },
   { label: 'بانتظار', value: summary.value.pending ?? 0 },
@@ -270,9 +341,18 @@ function onPage(p: number) {
   load()
 }
 
-function openDetail(row: Record<string, unknown>) {
-  selected.value = row
+async function openDetail(row: Record<string, unknown>) {
   detailOpen.value = true
+  detailLoading.value = true
+  selected.value = row
+  try {
+    const res = await getBookingDetail(String(row.id))
+    selected.value = { ...row, ...(res.data as Record<string, unknown>) }
+  } catch (e) {
+    toast.error(apiMessage(e, 'تعذر تحميل تفاصيل الحجز'))
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 function openCancel(row: Record<string, unknown>) {
@@ -298,7 +378,8 @@ async function confirmCancel() {
 }
 
 function exportCsv() {
-  if (!rows.value.length) {
+  const data = displayRows.value
+  if (!data.length) {
     toast.warning('لا توجد بيانات للتصدير في الصفحة الحالية')
     return
   }
@@ -310,19 +391,23 @@ function exportCsv() {
     'الخدمات',
     'موعد الحجز',
     'المبلغ',
+    'طريقة الدفع',
+    'حالة الدفع',
     'العمولة',
     'الحالة',
     'تاريخ الإنشاء',
   ]
-  const lines = rows.value.map((r) =>
+  const lines = data.map((r) =>
     [
       r.businessName,
       r.customerName,
       r.customerPhone,
-      r.staffName,
+      displayStaffName(r.staffName),
       servicesOf(r).join(' | '),
       r.bookedAt,
       r.totalPrice,
+      paymentMethodLabel(r.paymentMethod),
+      bookingPaymentStatusLabel(r.paymentStatus),
       r.commission,
       r.status,
       r.createdAt,
