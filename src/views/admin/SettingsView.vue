@@ -1,7 +1,55 @@
 <template>
   <div class="space-y-6" dir="rtl">
+    <div
+      v-if="launchMode"
+      class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-900"
+    >
+      وضع الإطلاق: محفظة الزبون معطّلة — كاش فقط
+    </div>
+
     <div v-if="loading" class="rounded-2xl border border-slate-200 bg-white py-16"><LoadingSpinner /></div>
     <form v-else class="space-y-6" @submit.prevent="save">
+      <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="mb-5 flex items-center gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-xl">🚀</div>
+          <div>
+            <h2 class="text-lg font-black text-slate-900">Credits &amp; Wallet (Google Play)</h2>
+            <p class="text-xs text-slate-500">إعدادات المحفظة والرصيد الترحيبي وحدود التنبيه</p>
+          </div>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div>
+              <span class="block text-sm font-bold text-slate-800">تفعيل محفظة الزبون</span>
+              <span class="mt-0.5 block text-xs text-slate-500">عطّل للإطلاق — يتجنب وسيط مالي</span>
+            </div>
+            <input v-model="walletForm.customerWalletEnabled" type="checkbox" class="h-5 w-5 accent-blue-600" />
+          </label>
+          <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div>
+              <span class="block text-sm font-bold text-slate-800">دفع الزبون من المحفظة</span>
+              <span class="mt-0.5 block text-xs text-slate-500">عطّل للإطلاق — كاش فقط</span>
+            </div>
+            <input v-model="walletForm.customerWalletPayEnabled" type="checkbox" class="h-5 w-5 accent-blue-600" />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">رصيد ترحيبي عند القبول</span>
+            <input v-model.number="walletForm.welcomeCreditsAmount" type="number" min="0" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
+            <span class="mt-1 block text-xs text-slate-500">يُمنح مرة واحدة لمحل/حرفي عند الموافقة</span>
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">حد التنبيه (برتقالي)</span>
+            <input v-model.number="walletForm.creditsWarningThreshold" type="number" min="1" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
+            <span class="mt-1 block text-xs text-slate-500">Push + تنبيه داخل التطبيق</span>
+          </label>
+          <label class="block md:col-span-2">
+            <span class="mb-1 block text-sm font-bold text-slate-700">حد التنبيه الحرج</span>
+            <input v-model.number="walletForm.creditsCriticalThreshold" type="number" min="1" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
+            <span class="mt-1 block text-xs text-slate-500">قبل توقف استقبال الطلبات — يجب أن يكون ≤ حد التنبيه</span>
+          </label>
+        </div>
+      </section>
+
       <section v-for="section in sections" :key="section.title" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-5 flex items-center gap-3">
           <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">{{ section.icon }}</div>
@@ -11,31 +59,16 @@
           </div>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
-          <label v-for="field in section.fields" :key="field.key" class="block" :class="field.fullWidth ? 'md:col-span-2' : ''">
+          <label v-for="field in section.fields" :key="field.key" class="block">
             <span class="mb-1 block text-sm font-bold text-slate-700">{{ field.label }}</span>
-            <textarea
-              v-if="field.kind === 'textarea'"
-              v-model="creditsForm[field.key as CreditsTextKey]"
-              rows="6"
-              class="w-full rounded-xl border border-slate-200 px-4 py-3 leading-relaxed"
-              :placeholder="field.placeholder"
-            />
             <input
-              v-else-if="field.kind === 'text'"
-              v-model="creditsForm[field.key as CreditsTextKey]"
-              type="text"
-              class="w-full rounded-xl border border-slate-200 px-4 py-3"
-              :placeholder="field.placeholder"
-            />
-            <input
-              v-else
-              v-model.number="form[field.key as SettingsKey]"
+              v-model.number="form[field.key]"
               type="number"
               :step="field.kind === 'int' ? 1 : 0.01"
               min="0"
               class="w-full rounded-xl border border-slate-200 px-4 py-3"
             />
-            <span v-if="field.percent" class="mt-1 block text-xs text-slate-500">النسبة الحالية: {{ percent(form[field.key as SettingsKey]) }}</span>
+            <span v-if="field.percent" class="mt-1 block text-xs text-slate-500">النسبة الحالية: {{ percent(form[field.key]) }}</span>
             <span v-if="field.hint" class="mt-1 block text-xs text-slate-500">{{ field.hint }}</span>
           </label>
         </div>
@@ -46,7 +79,7 @@
           <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">💰</div>
           <div>
             <h2 class="text-lg font-black text-slate-900">إعدادات شحن Credits</h2>
-            <p class="text-xs text-slate-500">حسابات التحويل وتعليمات شحن المحفظة للمستخدمين</p>
+            <p class="text-xs text-slate-500">حسابات التحويل وتعليمات شحن المحفظة للمزوّدين (محلات / حرفيون)</p>
           </div>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
@@ -65,7 +98,7 @@
           <label class="block">
             <span class="mb-1 block text-sm font-bold text-slate-700">مهلة المراجعة (دقائق)</span>
             <input v-model.number="creditsForm.topUpReviewDeadlineMinutes" type="number" min="1" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
-            <span class="mt-1 block text-xs text-slate-500">الافتراضي: 15 دقيقة</span>
+            <span class="mt-1 block text-xs text-slate-500">الافتراضي: 60 دقيقة</span>
           </label>
           <label class="block md:col-span-2">
             <span class="mb-1 block text-sm font-bold text-slate-700">نص التعليمات القانونية والفنية</span>
@@ -96,6 +129,7 @@ import { getPlatformSettings, updatePlatformSettings } from '@/api'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { apiMessage } from '@/utils/error'
 import { formatDate } from '@/utils/format'
+import { clearWelcomeCreditsCache } from '@/utils/settings'
 
 type SettingsKey =
   | 'serviceCommissionRate'
@@ -110,26 +144,27 @@ type SettingsKey =
   | 'noShowPenaltyRate'
   | 'noShowGracePeriodMinutes'
 
-type CreditsTextKey =
-  | 'zainCashAccountNumber'
-  | 'superKeyAccountNumber'
-  | 'walletWhatsAppNumber'
-  | 'topUpInstructionsAr'
+type WalletKey =
+  | 'customerWalletEnabled'
+  | 'customerWalletPayEnabled'
+  | 'welcomeCreditsAmount'
+  | 'creditsWarningThreshold'
+  | 'creditsCriticalThreshold'
 
-type SettingsField = {
-  key: SettingsKey | CreditsTextKey
+type SectionField = {
+  key: SettingsKey
   label: string
   percent?: boolean
+  kind?: 'int'
   hint?: string
-  placeholder?: string
-  fullWidth?: boolean
-  kind?: 'decimal' | 'int' | 'text' | 'textarea'
 }
 
 const toast = useToast()
 const loading = ref(true)
 const saving = ref(false)
 const updatedAt = ref('')
+const original = ref<Record<string, unknown>>({})
+
 const form = ref<Record<SettingsKey, number>>({
   serviceCommissionRate: 0.05,
   restaurantPerPersonFee: 5,
@@ -143,24 +178,37 @@ const form = ref<Record<SettingsKey, number>>({
   noShowPenaltyRate: 0.1,
   noShowGracePeriodMinutes: 30,
 })
-const creditsForm = ref<Record<CreditsTextKey, string> & { topUpReviewDeadlineMinutes: number }>({
+
+const walletForm = ref<Record<WalletKey, number | boolean>>({
+  customerWalletEnabled: false,
+  customerWalletPayEnabled: false,
+  welcomeCreditsAmount: 5000,
+  creditsWarningThreshold: 500,
+  creditsCriticalThreshold: 200,
+})
+
+const creditsForm = ref({
   zainCashAccountNumber: '',
   superKeyAccountNumber: '',
   walletWhatsAppNumber: '',
   topUpInstructionsAr: '',
-  topUpReviewDeadlineMinutes: 15,
+  topUpReviewDeadlineMinutes: 60,
 })
 
-const sections = computed((): { icon: string; title: string; description: string; fields: SettingsField[] }[] => [
+const launchMode = computed(
+  () => !walletForm.value.customerWalletEnabled && !walletForm.value.customerWalletPayEnabled,
+)
+
+const sections = computed((): { icon: string; title: string; description: string; fields: SectionField[] }[] => [
   {
     icon: '💳',
     title: 'رسوم وعمولات',
     description: 'عمولات المحلات والمطاعم والحرفيين',
     fields: [
-      { key: 'serviceCommissionRate', label: 'عمولة المحلات الخدمية', percent: true },
-      { key: 'restaurantPerPersonFee', label: 'رسوم المطاعم والقاعات لكل شخص ($)' },
-      { key: 'craftsmanCustomerFeeRate', label: 'نسبة على الزبون (حرفي)', percent: true },
-      { key: 'craftsmanProviderFeeRate', label: 'نسبة على الحرفي', percent: true },
+      { key: 'serviceCommissionRate' as SettingsKey, label: 'عمولة المحلات الخدمية', percent: true },
+      { key: 'restaurantPerPersonFee' as SettingsKey, label: 'رسوم المطاعم والقاعات لكل شخص ($)' },
+      { key: 'craftsmanCustomerFeeRate' as SettingsKey, label: 'نسبة على الزبون (حرفي)', percent: true },
+      { key: 'craftsmanProviderFeeRate' as SettingsKey, label: 'نسبة على الحرفي', percent: true },
     ],
   },
   {
@@ -168,15 +216,10 @@ const sections = computed((): { icon: string; title: string; description: string
     title: 'إعدادات الإلغاء وعدم الحضور',
     description: 'غرامات الإلغاء وعدم حضور الزبون',
     fields: [
-      { key: 'cancellationPenaltyRate', label: 'نسبة غرامة الإلغاء', percent: true },
-      { key: 'cancellationDeadlineHours', label: 'مهلة الإلغاء (ساعات)', kind: 'int' },
-      {
-        key: 'noShowPenaltyRate',
-        label: 'نسبة غرامة عدم الحضور',
-        percent: true,
-        hint: '0.10 = 10%',
-      },
-      { key: 'noShowGracePeriodMinutes', label: 'مهلة عدم الحضور (دقائق)', kind: 'int' },
+      { key: 'cancellationPenaltyRate' as SettingsKey, label: 'نسبة غرامة الإلغاء', percent: true },
+      { key: 'cancellationDeadlineHours' as SettingsKey, label: 'مهلة الإلغاء (ساعات)', kind: 'int' as const },
+      { key: 'noShowPenaltyRate' as SettingsKey, label: 'نسبة غرامة عدم الحضور', percent: true, hint: '0.10 = 10%' },
+      { key: 'noShowGracePeriodMinutes' as SettingsKey, label: 'مهلة عدم الحضور (دقائق)', kind: 'int' as const },
     ],
   },
   {
@@ -184,15 +227,15 @@ const sections = computed((): { icon: string; title: string; description: string
     title: 'التذكيرات',
     description: 'إشعارات التذكير قبل موعد الحجز',
     fields: [
-      { key: 'reminderHoursBeforeBooking', label: 'تذكير قبل الموعد (ساعات)', kind: 'int' },
-      { key: 'finalReminderHoursBeforeBooking', label: 'تذكير نهائي (ساعات)', kind: 'int' },
+      { key: 'reminderHoursBeforeBooking' as SettingsKey, label: 'تذكير قبل الموعد (ساعات)', kind: 'int' as const },
+      { key: 'finalReminderHoursBeforeBooking' as SettingsKey, label: 'تذكير نهائي (ساعات)', kind: 'int' as const },
     ],
   },
   {
     icon: '📺',
     title: 'الإعلانات',
     description: 'تسعير الإعلانات في التطبيق',
-    fields: [{ key: 'adPricePerDay', label: 'سعر الإعلان اليومي (د.ع)', kind: 'int' }],
+    fields: [{ key: 'adPricePerDay' as SettingsKey, label: 'سعر الإعلان اليومي (د.ع)', kind: 'int' as const }],
   },
 ])
 
@@ -201,20 +244,33 @@ function percent(v: unknown) {
   return Number.isNaN(n) ? '—' : `${(n * 100).toFixed(0)}%`
 }
 
+function snapshotCurrent(): Record<string, unknown> {
+  return { ...form.value, ...walletForm.value, ...creditsForm.value }
+}
+
+function applyData(data: Record<string, unknown>) {
+  for (const key of Object.keys(form.value) as SettingsKey[]) {
+    if (data[key] !== undefined && data[key] !== null) form.value[key] = Number(data[key])
+  }
+  walletForm.value.customerWalletEnabled = Boolean(data.customerWalletEnabled ?? false)
+  walletForm.value.customerWalletPayEnabled = Boolean(data.customerWalletPayEnabled ?? false)
+  walletForm.value.welcomeCreditsAmount = Number(data.welcomeCreditsAmount ?? 5000)
+  walletForm.value.creditsWarningThreshold = Number(data.creditsWarningThreshold ?? 500)
+  walletForm.value.creditsCriticalThreshold = Number(data.creditsCriticalThreshold ?? 200)
+  creditsForm.value.zainCashAccountNumber = String(data.zainCashAccountNumber ?? '')
+  creditsForm.value.superKeyAccountNumber = String(data.superKeyAccountNumber ?? '')
+  creditsForm.value.walletWhatsAppNumber = String(data.walletWhatsAppNumber ?? '')
+  creditsForm.value.topUpInstructionsAr = String(data.topUpInstructionsAr ?? '')
+  creditsForm.value.topUpReviewDeadlineMinutes = Number(data.topUpReviewDeadlineMinutes ?? 60)
+  updatedAt.value = String(data.updatedAt ?? '')
+  original.value = snapshotCurrent()
+}
+
 async function load() {
   loading.value = true
   try {
     const res = await getPlatformSettings()
-    const data = res.data as Record<string, unknown>
-    for (const key of Object.keys(form.value) as SettingsKey[]) {
-      if (data[key] !== undefined && data[key] !== null) form.value[key] = Number(data[key])
-    }
-    creditsForm.value.zainCashAccountNumber = String(data.zainCashAccountNumber ?? '')
-    creditsForm.value.superKeyAccountNumber = String(data.superKeyAccountNumber ?? '')
-    creditsForm.value.walletWhatsAppNumber = String(data.walletWhatsAppNumber ?? '')
-    creditsForm.value.topUpInstructionsAr = String(data.topUpInstructionsAr ?? '')
-    creditsForm.value.topUpReviewDeadlineMinutes = Number(data.topUpReviewDeadlineMinutes ?? 15)
-    updatedAt.value = String(data.updatedAt ?? '')
+    applyData(res.data as Record<string, unknown>)
   } catch (e) {
     toast.error(apiMessage(e, 'تعذر تحميل الإعدادات'))
   } finally {
@@ -222,15 +278,44 @@ async function load() {
   }
 }
 
+function validateWallet(): string | null {
+  const w = Number(walletForm.value.welcomeCreditsAmount)
+  const warn = Number(walletForm.value.creditsWarningThreshold)
+  const crit = Number(walletForm.value.creditsCriticalThreshold)
+  if (w < 0) return 'رصيد الترحيب يجب أن يكون ≥ 0'
+  if (warn <= 0 || crit <= 0) return 'حدود التنبيه يجب أن تكون أكبر من صفر'
+  if (crit > warn) return 'الحد الحرج يجب أن يكون ≤ حد التنبيه البرتقالي'
+  return null
+}
+
+function buildPatch(): Record<string, unknown> {
+  const current = snapshotCurrent()
+  const patch: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(current)) {
+    if (JSON.stringify(original.value[key]) !== JSON.stringify(value)) {
+      patch[key] = value
+    }
+  }
+  return patch
+}
+
 async function save() {
+  const validationError = validateWallet()
+  if (validationError) {
+    toast.warning(validationError)
+    return
+  }
+  const patch = buildPatch()
+  if (!Object.keys(patch).length) {
+    toast.info('لا توجد تغييرات للحفظ')
+    return
+  }
   saving.value = true
   try {
-    await updatePlatformSettings({
-      ...form.value,
-      ...creditsForm.value,
-    })
+    await updatePlatformSettings(patch)
+    clearWelcomeCreditsCache()
     toast.success('تم حفظ الإعدادات')
-    load()
+    await load()
   } catch (e) {
     toast.error(apiMessage(e, 'تعذر حفظ الإعدادات'))
   } finally {

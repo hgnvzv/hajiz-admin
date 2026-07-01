@@ -31,8 +31,10 @@
         </RouterLink>
       </template>
       <template #cell-professions="{ row }">
-        <div class="flex flex-wrap gap-1">
+        <div class="flex flex-wrap items-center gap-1">
           <span v-for="p in professions(row)" :key="p" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">{{ p }}</span>
+          <span v-if="professions(row).length === 3" class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">3/3</span>
+          <span v-if="professions(row).length > 3" class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">تجاوز الحد</span>
           <span v-if="!professions(row).length">—</span>
         </div>
       </template>
@@ -69,6 +71,7 @@ import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import { apiMessage } from '@/utils/error'
 import { normalizePaged, statusClass, statusLabel } from '@/utils/admin'
+import { welcomeCreditsApproveMessage } from '@/utils/settings'
 
 const toast = useToast()
 const filters = [
@@ -138,7 +141,7 @@ async function approve(row: Record<string, unknown>) {
   if (!confirm('هل تريد قبول الحرفي؟')) return
   try {
     await approveCraftsman(String(row.id))
-    toast.success('تم قبول الحرفي')
+    toast.success(await welcomeCreditsApproveMessage('الحرفي'))
     load()
   } catch (e) {
     toast.error(apiMessage(e))

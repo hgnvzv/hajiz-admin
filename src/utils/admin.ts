@@ -138,6 +138,26 @@ export function displayStaffName(name: unknown) {
   return v || '—'
 }
 
+export function creditTransactionTypeLabel(type: unknown) {
+  const map: Record<string, string> = {
+    TopUp: 'شحن',
+    Commission: 'عمولة',
+    WelcomeBonus: 'رصيد ترحيبي',
+    TransferIn: 'تحويل وارد',
+    TransferOut: 'تحويل صادر',
+  }
+  const key = String(type ?? '')
+  return map[key] ?? (key || '—')
+}
+
+export function republishGenerationLabel(gen: unknown) {
+  const n = Number(gen ?? 0)
+  if (n === 0) return 'الطلب الأصلي'
+  if (n === 1) return 'إعادة نشر (1)'
+  if (n === 2) return 'إعادة نشر (2)'
+  return `إعادة نشر (${n})`
+}
+
 export function discountStatusLabel(status: unknown) {
   const map: Record<string, string> = {
     Pending: 'معلق',

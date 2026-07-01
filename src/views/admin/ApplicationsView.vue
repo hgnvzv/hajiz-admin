@@ -83,6 +83,7 @@ import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import { apiMessage } from '@/utils/error'
 import { formatDateShort } from '@/utils/format'
 import { normalizePaged, statusClass, statusLabel } from '@/utils/admin'
+import { welcomeCreditsApproveMessage } from '@/utils/settings'
 
 const toast = useToast()
 const route = useRoute()
@@ -142,7 +143,7 @@ async function approve(row: Record<string, unknown>) {
   if (!confirm('هل تريد قبول طلب الانضمام؟')) return
   try {
     await approveApplication(String(row.id))
-    toast.success('تم قبول الطلب')
+    toast.success(await welcomeCreditsApproveMessage('صاحب المحل'))
     load()
   } catch (e) {
     toast.error(apiMessage(e))

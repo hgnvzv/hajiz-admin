@@ -13,7 +13,12 @@
         <RouterLink :to="`/service-requests/${row.id}`" class="font-bold text-blue-600 hover:underline">{{ row.customerName ?? '—' }}</RouterLink>
         <p class="text-xs text-slate-500">{{ row.customerPhone ?? '' }}</p>
       </template>
-      <template #cell-proposedPrice="{ row }">{{ formatMoney(row.proposedPrice ?? row.price) }}</template>
+      <template #cell-republishGeneration="{ row }">
+        <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+          {{ republishGenerationLabel(row.republishGeneration) }}
+        </span>
+      </template>
+      <template #cell-proposedPrice="{ row }">{{ formatMoneyIQD(row.proposedPrice ?? row.price ?? row.agreedPrice) }}</template>
       <template #cell-status="{ row }"><span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">{{ statusLabel(row.status) }}</span></template>
       <template #cell-createdAt="{ row }">{{ formatDateShort(row.createdAt as string) }}</template>
       <template #cell-actions="{ row }">
@@ -30,8 +35,8 @@ import { useToast } from 'vue-toastification'
 import { getServiceRequests } from '@/api'
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import { apiMessage } from '@/utils/error'
-import { formatDateShort, formatMoney } from '@/utils/format'
-import { normalizePaged, statusClass, statusLabel } from '@/utils/admin'
+import { formatDateShort, formatMoneyIQD } from '@/utils/format'
+import { normalizePaged, republishGenerationLabel, statusClass, statusLabel } from '@/utils/admin'
 
 const toast = useToast()
 const filters = [
@@ -45,7 +50,8 @@ const columns: ColumnDef[] = [
   { key: 'customerName', label: 'الزبون' },
   { key: 'professionName', label: 'الحرفة' },
   { key: 'cityName', label: 'المحافظة' },
-  { key: 'proposedPrice', label: 'السعر المقترح' },
+  { key: 'proposedPrice', label: 'السعر' },
+  { key: 'republishGeneration', label: 'الجيل' },
   { key: 'status', label: 'الحالة' },
   { key: 'createdAt', label: 'التاريخ' },
   { key: 'actions', label: 'إجراءات' },

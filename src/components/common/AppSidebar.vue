@@ -108,7 +108,7 @@ const items = computed(() => [
     label: 'طلبات شحن Credits',
     badge: ui.pendingCreditsTopUpCount > 0 ? ui.pendingCreditsTopUpCount : null,
   },
-  // { to: '/service-requests', icon: MapPinIcon, label: 'الخدمات الموقعية', badge: null },
+  { to: '/service-requests', icon: MapPinIcon, label: 'الخدمات الموقعية', badge: null },
   { to: '/commissions', icon: BanknotesIcon, label: 'العمولات', badge: null },
   { to: '/coupons', icon: TicketIcon, label: 'الكوبونات', badge: null },
   { to: '/discounts', icon: TagIcon, label: 'العروض والخصومات', badge: null },

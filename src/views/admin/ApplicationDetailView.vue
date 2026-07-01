@@ -52,12 +52,18 @@
         </div>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-black text-slate-900">الصور والمستندات</h3>
-          <div class="mt-4 grid grid-cols-2 gap-3">
-            <a v-for="url in imageUrls" :key="url" :href="url" target="_blank" class="overflow-hidden rounded-xl border border-slate-200">
-              <img :src="url" alt="صورة الطلب" class="h-32 w-full object-cover" />
-            </a>
-            <p v-if="!imageUrls.length" class="col-span-2 text-sm text-slate-500">لا توجد صور مرفوعة</p>
+          <h3 class="text-lg font-black text-slate-900">الصور والمستندات (حتى 3)</h3>
+          <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <button
+              v-for="(url, idx) in imageUrls"
+              :key="url"
+              type="button"
+              class="overflow-hidden rounded-xl border border-slate-200 ring-offset-2 hover:ring-2 hover:ring-blue-300"
+              @click="openLightbox(url)"
+            >
+              <img :src="url" :alt="`صورة ${idx + 1}`" class="h-32 w-full object-cover" />
+            </button>
+            <p v-if="!imageUrls.length" class="col-span-full text-sm text-slate-500">لا توجد صور مرفوعة</p>
           </div>
         </div>
       </div>
@@ -101,8 +107,10 @@
     <p v-else class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">لم يتم العثور على الطلب</p>
 
     <ConfirmModal v-model="rejectOpen" title="رفض طلب الانضمام" confirm-text="رفض" confirm-color="danger" @confirm="reject">
-      <textarea v-model="rejectReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="سبب الرفض" />
+      <textarea v-model="rejectReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="سبب الرفض (مطلوب)" />
     </ConfirmModal>
+
+    <ImageLightbox v-model="lightboxOpen" :src="lightboxSrc" alt="صورة طلب الانضمام" />
   </div>
 </template>
 
@@ -113,9 +121,11 @@ import { useToast } from 'vue-toastification'
 import { approveApplication, getApplicationDetail, rejectApplication } from '@/api'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import ImageLightbox from '@/components/common/ImageLightbox.vue'
 import { apiMessage } from '@/utils/error'
 import { formatDate } from '@/utils/format'
 import { statusClass, statusLabel } from '@/utils/admin'
+import { welcomeCreditsApproveMessage } from '@/utils/settings'
 
 const Info = defineComponent({
   props: { label: { type: String, required: true }, value: { type: String, required: true } },
@@ -134,6 +144,8 @@ const loading = ref(true)
 const item = ref<Record<string, unknown> | null>(null)
 const rejectOpen = ref(false)
 const rejectReason = ref('')
+const lightboxOpen = ref(false)
+const lightboxSrc = ref('')
 
 const subCategories = computed(() => {
   const raw = item.value?.subCategories
@@ -148,9 +160,12 @@ const subCategories = computed(() => {
 })
 const workingHours = computed(() => (Array.isArray(item.value?.workingHours) ? item.value.workingHours as Record<string, unknown>[] : []))
 const imageUrls = computed(() => {
-  const raw = item.value?.images ?? item.value?.imageUrls ?? item.value?.documents
+  const raw = item.value?.imageUrls ?? item.value?.images ?? item.value?.documents
   if (!Array.isArray(raw)) return []
-  return raw.map((x) => typeof x === 'string' ? x : String((x as Record<string, unknown>).url ?? '')).filter(Boolean)
+  return raw
+    .map((x) => (typeof x === 'string' ? x : String((x as Record<string, unknown>).url ?? '')))
+    .filter(Boolean)
+    .slice(0, 3)
 })
 const hasCoords = computed(() => item.value?.latitude != null && item.value?.longitude != null)
 const mapUrl = computed(() => `https://www.google.com/maps?q=${item.value?.latitude},${item.value?.longitude}`)
@@ -173,11 +188,16 @@ async function load() {
   }
 }
 
+function openLightbox(url: string) {
+  lightboxSrc.value = url
+  lightboxOpen.value = true
+}
+
 async function approve() {
   if (!confirm('هل تريد قبول طلب الانضمام؟')) return
   try {
     await approveApplication(String(route.params.id))
-    toast.success('تم قبول الطلب')
+    toast.success(await welcomeCreditsApproveMessage('صاحب المحل'))
     router.push('/applications')
   } catch (e) {
     toast.error(apiMessage(e))
@@ -185,6 +205,11 @@ async function approve() {
 }
 
 async function reject() {
+  if (!rejectReason.value.trim()) {
+    toast.warning('يرجى كتابة سبب الرفض')
+    rejectOpen.value = true
+    return
+  }
   try {
     await rejectApplication(String(route.params.id), rejectReason.value || 'لم يتم تحديد سبب')
     toast.success('تم رفض الطلب')

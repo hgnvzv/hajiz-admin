@@ -1,5 +1,9 @@
 <template>
   <div class="space-y-6" dir="rtl">
+    <div class="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+      <strong>ملاحظة:</strong> شحن الزبون معطّل في وضع الإطلاق — تتوقع طلبات من <strong>المحلات</strong> و<strong>الحرفيين</strong> فقط.
+    </div>
+
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div class="flex flex-wrap gap-2">
         <button
