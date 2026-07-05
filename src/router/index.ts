@@ -2,10 +2,37 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
+import PublicLayout from '@/layouts/PublicLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    {
+      path: '/privacy',
+      component: PublicLayout,
+      meta: { public: true },
+      children: [
+        {
+          path: '',
+          name: 'privacy',
+          meta: { title: 'سياسة الخصوصية' },
+          component: () => import('@/views/public/PrivacyView.vue'),
+        },
+      ],
+    },
+    {
+      path: '/terms',
+      component: PublicLayout,
+      meta: { public: true },
+      children: [
+        {
+          path: '',
+          name: 'terms',
+          meta: { title: 'الشروط والأحكام' },
+          component: () => import('@/views/public/TermsView.vue'),
+        },
+      ],
+    },
     {
       path: '/login',
       component: AuthLayout,
@@ -200,6 +227,8 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _, next) => {
+  if (to.meta.public) return next()
+
   const auth = useAuthStore()
   const token = localStorage.getItem('admin_token') || localStorage.getItem('hajiz_admin_token')
   if (to.meta.requiresAuth && !token) return next('/login')
