@@ -34,6 +34,19 @@ const router = createRouter({
       ],
     },
     {
+      path: '/delete-account',
+      component: PublicLayout,
+      meta: { public: true },
+      children: [
+        {
+          path: '',
+          name: 'delete-account',
+          meta: { title: 'حذف الحساب' },
+          component: () => import('@/views/public/DeleteAccountView.vue'),
+        },
+      ],
+    },
+    {
       path: '/login',
       component: AuthLayout,
       meta: { guest: true },
@@ -228,6 +241,9 @@ const router = createRouter({
 
 router.beforeEach((to, _, next) => {
   if (to.meta.public) return next()
+
+  document.documentElement.lang = 'ar'
+  document.documentElement.dir = 'rtl'
 
   const auth = useAuthStore()
   const token = localStorage.getItem('admin_token') || localStorage.getItem('hajiz_admin_token')

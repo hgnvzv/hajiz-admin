@@ -10,10 +10,10 @@ import PublicPageShell from '@/components/public/PublicPageShell.vue'
 import LegalPageSections from '@/components/public/LegalPageSections.vue'
 import { usePublicLocale } from '@/composables/usePublicLocale'
 import { useReactivePageMeta } from '@/composables/useReactivePageMeta'
-import { termsContent } from '@/content/public/legalPages'
+import { deleteAccountContent } from '@/content/public/legalPages'
 
 const { t } = usePublicLocale()
-const content = computed(() => t(termsContent))
+const content = computed(() => t(deleteAccountContent))
 const metaTitle = computed(() => content.value.metaTitle)
 const metaDescription = computed(() => content.value.metaDescription)
 

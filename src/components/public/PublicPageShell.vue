@@ -1,8 +1,28 @@
 <template>
-  <div class="public-page flex min-h-screen flex-col">
-    <!-- Header -->
+  <div class="public-page flex min-h-screen flex-col" :dir="isRtl ? 'rtl' : 'ltr'">
     <header class="border-b border-slate-100 bg-white">
       <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
+        <div class="mb-6 flex justify-center">
+          <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 text-sm font-bold">
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2 transition"
+              :class="locale === 'ar' ? 'bg-[#2E8B57] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+              @click="setLocale('ar')"
+            >
+              {{ publicLangLabels.ar }}
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2 transition"
+              :class="locale === 'en' ? 'bg-[#2E8B57] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+              @click="setLocale('en')"
+            >
+              {{ publicLangLabels.en }}
+            </button>
+          </div>
+        </div>
+
         <div v-if="loading" class="animate-pulse space-y-4">
           <div class="mx-auto h-16 w-16 rounded-2xl bg-slate-100" />
           <div class="mx-auto h-8 w-48 rounded-lg bg-slate-100" />
@@ -22,7 +42,6 @@
       </div>
     </header>
 
-    <!-- Content -->
     <main class="flex-1 bg-gradient-to-b from-slate-50/80 to-white">
       <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-12">
         <div v-if="loading" class="space-y-4">
@@ -34,30 +53,35 @@
       </div>
     </main>
 
-    <!-- Footer -->
     <footer class="border-t border-slate-100 bg-white py-8">
       <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
-        <nav v-if="!loading" class="mb-4 flex flex-wrap items-center justify-center gap-4 text-sm font-bold">
-          <RouterLink to="/privacy" class="text-slate-600 transition hover:text-[#2E8B57]">سياسة الخصوصية</RouterLink>
-          <span class="text-slate-300">|</span>
-          <RouterLink to="/terms" class="text-slate-600 transition hover:text-[#2E8B57]">الشروط والأحكام</RouterLink>
+        <nav v-if="!loading" class="mb-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm font-bold">
+          <RouterLink to="/privacy" class="text-slate-600 transition hover:text-[#2E8B57]">{{ footer.privacy }}</RouterLink>
+          <span class="hidden text-slate-300 sm:inline">|</span>
+          <RouterLink to="/terms" class="text-slate-600 transition hover:text-[#2E8B57]">{{ footer.terms }}</RouterLink>
+          <span class="hidden text-slate-300 sm:inline">|</span>
+          <RouterLink to="/delete-account" class="text-slate-600 transition hover:text-[#2E8B57]">{{ footer.deleteAccount }}</RouterLink>
         </nav>
         <p class="text-sm font-bold text-slate-800">© HAJIZ</p>
-        <p class="mt-1 text-xs text-slate-500">All Rights Reserved.</p>
+        <p class="mt-1 text-xs text-slate-500">{{ footer.rights }}</p>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { publicFooter, publicLangLabels } from '@/content/public/constants'
+import { usePublicLocale } from '@/composables/usePublicLocale'
 
 defineProps<{
   title: string
   subtitle?: string
 }>()
 
+const { locale, isRtl, setLocale, t } = usePublicLocale()
+const footer = computed(() => t(publicFooter))
 const loading = ref(true)
 
 onMounted(() => {

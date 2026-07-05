@@ -32,7 +32,15 @@ defineProps<{
 }
 
 .legal-body :deep(ul) {
-  @apply mt-3 space-y-2 pr-1;
+  @apply mt-3 space-y-2;
+}
+
+[dir='rtl'] .legal-body :deep(ul) {
+  @apply pr-1;
+}
+
+[dir='ltr'] .legal-body :deep(ul) {
+  @apply pl-1;
 }
 
 .legal-body :deep(li) {
