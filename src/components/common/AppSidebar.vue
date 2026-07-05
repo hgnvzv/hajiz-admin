@@ -92,7 +92,7 @@ const items = computed(() => [
   {
     to: '/applications',
     icon: ClipboardDocumentListIcon,
-    label: 'طلبات الانضمام',
+    label: 'طلبات انضمام المحلات',
     badge: ui.pendingBusinessCount > 0 ? ui.pendingBusinessCount : null,
   },
   { to: '/businesses', icon: BuildingStorefrontIcon, label: 'المحلات', badge: null },

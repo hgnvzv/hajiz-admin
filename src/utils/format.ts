@@ -1,3 +1,4 @@
+import { API_ORIGIN } from '@/api'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ar'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
@@ -32,4 +33,18 @@ export function formatMoneyIQD(n: unknown) {
 export function formatNumber(n: number | undefined | null) {
   if (n == null || Number.isNaN(Number(n))) return '—'
   return new Intl.NumberFormat('ar-IQ').format(Number(n))
+}
+
+export function formatCredits(n: unknown) {
+  const formatted = formatMoney(n)
+  return formatted === '—' ? '—' : `${formatted} Credit`
+}
+
+export function resolveMediaUrl(url: unknown): string {
+  if (url == null || url === '') return ''
+  const s = String(url).trim()
+  if (!s) return ''
+  if (/^(https?:|data:)/i.test(s)) return s
+  if (s.startsWith('/')) return `${API_ORIGIN}${s}`
+  return `${API_ORIGIN}/${s}`
 }

@@ -30,15 +30,23 @@
           {{ row.fullName ?? row.name ?? '—' }}
         </RouterLink>
       </template>
+      <template #cell-city="{ row }">
+        {{ row.city ?? row.cityName ?? '—' }}
+      </template>
       <template #cell-professions="{ row }">
         <div class="flex flex-wrap items-center gap-1">
-          <span v-for="p in professions(row)" :key="p" class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">{{ p }}</span>
-          <span v-if="professions(row).length === 3" class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">3/3</span>
-          <span v-if="professions(row).length > 3" class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">تجاوز الحد</span>
-          <span v-if="!professions(row).length">—</span>
+          <span class="font-bold text-slate-800">{{ professionsCount(row) }}</span>
+          <span v-if="professionsCount(row) === 3" class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">3/3</span>
+          <span v-if="professionsCount(row) > 3" class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">تجاوز الحد</span>
         </div>
       </template>
-      <template #cell-avgRating="{ row }">{{ Number(row.avgRating ?? 0).toFixed(1) }} ({{ row.totalReviews ?? 0 }})</template>
+      <template #cell-creditsBalance="{ row }">
+        <span v-if="row.creditsBalance != null" class="font-bold text-violet-800">{{ formatCredits(row.creditsBalance) }}</span>
+        <span v-else class="text-slate-400">—</span>
+      </template>
+      <template #cell-createdAt="{ row }">
+        {{ formatDateShort(row.createdAt as string) }}
+      </template>
       <template #cell-status="{ row }">
         <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">
           {{ statusLabel(row.status) }}
@@ -57,7 +65,7 @@
     </DataTable>
 
     <ConfirmModal v-model="rejectOpen" title="رفض الحرفي" confirm-text="رفض" confirm-color="danger" @confirm="confirmReject">
-      <textarea v-model="rejectReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="سبب الرفض" />
+      <textarea v-model="rejectReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="سبب الرفض (مطلوب)" />
     </ConfirmModal>
   </div>
 </template>
@@ -70,6 +78,7 @@ import { approveCraftsman, getCraftsmen, rejectCraftsman, toggleCraftsman } from
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import { apiMessage } from '@/utils/error'
+import { formatCredits, formatDateShort } from '@/utils/format'
 import { normalizePaged, statusClass, statusLabel } from '@/utils/admin'
 import { welcomeCreditsApproveMessage } from '@/utils/settings'
 
@@ -79,16 +88,15 @@ const filters = [
   { value: 'Pending', label: 'معلقة' },
   { value: 'Approved', label: 'مقبولة' },
   { value: 'Rejected', label: 'مرفوضة' },
-  { value: 'Suspended', label: 'موقوفة' },
 ]
 const columns: ColumnDef[] = [
   { key: 'fullName', label: 'الاسم' },
   { key: 'phone', label: 'الهاتف' },
   { key: 'city', label: 'المحافظة' },
-  { key: 'professions', label: 'الحرف' },
-  { key: 'avgRating', label: 'التقييم' },
   { key: 'status', label: 'الحالة' },
-  { key: 'completedJobs', label: 'أعمال مكتملة' },
+  { key: 'professions', label: 'عدد الحرف' },
+  { key: 'creditsBalance', label: 'رصيد Credits' },
+  { key: 'createdAt', label: 'تاريخ التسجيل' },
   { key: 'actions', label: 'إجراءات' },
 ]
 const rows = ref<Record<string, unknown>[]>([])
@@ -102,10 +110,10 @@ const rejectOpen = ref(false)
 const rejectReason = ref('')
 const rejectRow = ref<Record<string, unknown> | null>(null)
 
-function professions(row: Record<string, unknown>) {
+function professionsCount(row: Record<string, unknown>) {
   const raw = row.professions
-  if (!Array.isArray(raw)) return []
-  return raw.map((p) => typeof p === 'string' ? p : String((p as Record<string, unknown>).nameAr ?? (p as Record<string, unknown>).name ?? '')).filter(Boolean)
+  if (!Array.isArray(raw)) return 0
+  return raw.length
 }
 
 async function load() {
@@ -156,8 +164,13 @@ function openReject(row: Record<string, unknown>) {
 
 async function confirmReject() {
   if (!rejectRow.value?.id) return
+  if (!rejectReason.value.trim()) {
+    toast.warning('يرجى كتابة سبب الرفض')
+    rejectOpen.value = true
+    return
+  }
   try {
-    await rejectCraftsman(String(rejectRow.value.id), rejectReason.value || 'لم يتم تحديد سبب')
+    await rejectCraftsman(String(rejectRow.value.id), rejectReason.value.trim())
     toast.success('تم رفض الحرفي')
     load()
   } catch (e) {

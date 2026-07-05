@@ -141,11 +141,11 @@
             </p>
           </div>
 
-          <div v-if="detail.screenshotUrl" class="mt-4">
+          <div v-if="detailScreenshotUrl" class="mt-4">
             <p class="mb-2 text-sm font-bold text-slate-700">صورة إثبات التحويل</p>
             <button type="button" class="block w-full overflow-hidden rounded-xl ring-1 ring-slate-200" @click="zoomOpen = true">
               <img
-                :src="String(detail.screenshotUrl)"
+                :src="detailScreenshotUrl"
                 alt="سكرين شوت التحويل"
                 class="max-h-80 w-full cursor-zoom-in object-contain bg-slate-100"
               />
@@ -191,11 +191,11 @@
 
     <!-- Screenshot zoom -->
     <div
-      v-if="zoomOpen && detail?.screenshotUrl"
+      v-if="zoomOpen && detailScreenshotUrl"
       class="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4"
       @click="zoomOpen = false"
     >
-      <img :src="String(detail.screenshotUrl)" alt="تكبير السكرين شوت" class="max-h-full max-w-full object-contain" />
+      <img :src="detailScreenshotUrl" alt="تكبير السكرين شوت" class="max-h-full max-w-full object-contain" />
     </div>
 
     <div
@@ -313,7 +313,7 @@ import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { apiMessage } from '@/utils/error'
-import { formatDate, formatDateShort, formatMoneyIQD } from '@/utils/format'
+import { formatDate, formatDateShort, formatMoneyIQD, resolveMediaUrl } from '@/utils/format'
 import { normalizePaged, statusClass, statusLabel, userTypeLabel } from '@/utils/admin'
 import { useUiStore } from '@/stores/ui'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -375,6 +375,8 @@ const isPartialApproval = computed(() => {
   const actual = Number(actualCreditsAmount.value)
   return pkg > 0 && actual > 0 && actual < pkg
 })
+
+const detailScreenshotUrl = computed(() => resolveMediaUrl(detail.value?.screenshotUrl))
 
 async function load() {
   loading.value = true

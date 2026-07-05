@@ -123,7 +123,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import ImageLightbox from '@/components/common/ImageLightbox.vue'
 import { apiMessage } from '@/utils/error'
-import { formatDate } from '@/utils/format'
+import { formatDate, resolveMediaUrl } from '@/utils/format'
 import { statusClass, statusLabel } from '@/utils/admin'
 import { welcomeCreditsApproveMessage } from '@/utils/settings'
 
@@ -163,7 +163,7 @@ const imageUrls = computed(() => {
   const raw = item.value?.imageUrls ?? item.value?.images ?? item.value?.documents
   if (!Array.isArray(raw)) return []
   return raw
-    .map((x) => (typeof x === 'string' ? x : String((x as Record<string, unknown>).url ?? '')))
+    .map((x) => (typeof x === 'string' ? resolveMediaUrl(x) : resolveMediaUrl((x as Record<string, unknown>).url)))
     .filter(Boolean)
     .slice(0, 3)
 })

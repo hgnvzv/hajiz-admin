@@ -143,8 +143,28 @@ export const updateDiscountOrder = (id: string, displayOrder: number) =>
   api.put(`/admin/discounts/${id}/order`, { displayOrder })
 
 // ── Advertisements ──
+export { adminAdvertisementsApi } from './adminAdvertisements'
+
 export const getAdminAdvertisements = (params?: Record<string, unknown>) =>
   api.get('/admin/advertisements', { params })
+
+export const getAdminAdvertisementDetail = (id: string) => api.get(`/admin/advertisements/${id}`)
+
+export const updateAdminAdvertisement = (id: string, data: Record<string, unknown>) =>
+  api.put(`/admin/advertisements/${id}`, data)
+
+export const updateAdminAdvertisementImage = (id: string, file: File) => {
+  const fd = new FormData()
+  fd.append('image', file)
+  return api.put(`/admin/advertisements/${id}/image`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+export const updateAdminAdvertisementDisplayOrder = (id: string, displayOrder: number) =>
+  api.put(`/admin/advertisements/${id}/display-order`, { displayOrder })
+
+export const deleteAdminAdvertisement = (id: string) => api.delete(`/admin/advertisements/${id}`)
 
 export const approveAdvertisement = (id: string) => api.put(`/admin/advertisements/${id}/approve`)
 

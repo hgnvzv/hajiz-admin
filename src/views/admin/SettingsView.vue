@@ -4,7 +4,7 @@
       v-if="launchMode"
       class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-900"
     >
-      وضع الإطلاق: محفظة الزبون معطّلة — كاش فقط
+      وضع الإطلاق: محفظة الزبون معطّلة — الدفع كاش فقط
     </div>
 
     <div v-if="loading" class="rounded-2xl border border-slate-200 bg-white py-16"><LoadingSpinner /></div>
@@ -13,29 +13,29 @@
         <div class="mb-5 flex items-center gap-3">
           <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-xl">🚀</div>
           <div>
-            <h2 class="text-lg font-black text-slate-900">Credits &amp; Wallet (Google Play)</h2>
-            <p class="text-xs text-slate-500">إعدادات المحفظة والرصيد الترحيبي وحدود التنبيه</p>
+            <h2 class="text-lg font-black text-slate-900">Credits &amp; Wallet — إعدادات المحفظة</h2>
+            <p class="text-xs text-slate-500">إعدادات المحفظة والرصيد الترحيبي وحدود التنبيه والحد الأدنى للرصيد</p>
           </div>
         </div>
         <div class="grid gap-4 md:grid-cols-2">
           <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div>
               <span class="block text-sm font-bold text-slate-800">تفعيل محفظة الزبون</span>
-              <span class="mt-0.5 block text-xs text-slate-500">عطّل للإطلاق — يتجنب وسيط مالي</span>
+              <span class="mt-0.5 block text-xs text-slate-500">معطّل للإطلاق على Google Play</span>
             </div>
             <input v-model="walletForm.customerWalletEnabled" type="checkbox" class="h-5 w-5 accent-blue-600" />
           </label>
           <label class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <div>
               <span class="block text-sm font-bold text-slate-800">دفع الزبون من المحفظة</span>
-              <span class="mt-0.5 block text-xs text-slate-500">عطّل للإطلاق — كاش فقط</span>
+              <span class="mt-0.5 block text-xs text-slate-500">كاش فقط عند التعطيل</span>
             </div>
             <input v-model="walletForm.customerWalletPayEnabled" type="checkbox" class="h-5 w-5 accent-blue-600" />
           </label>
           <label class="block">
             <span class="mb-1 block text-sm font-bold text-slate-700">رصيد ترحيبي عند القبول</span>
             <input v-model.number="walletForm.welcomeCreditsAmount" type="number" min="0" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
-            <span class="mt-1 block text-xs text-slate-500">يُمنح مرة واحدة لمحل/حرفي عند الموافقة</span>
+            <span class="mt-1 block text-xs text-slate-500">يُمنح مرة واحدة لمحل/حرفي</span>
           </label>
           <label class="block">
             <span class="mb-1 block text-sm font-bold text-slate-700">حد التنبيه (برتقالي)</span>
@@ -45,7 +45,17 @@
           <label class="block md:col-span-2">
             <span class="mb-1 block text-sm font-bold text-slate-700">حد التنبيه الحرج</span>
             <input v-model.number="walletForm.creditsCriticalThreshold" type="number" min="1" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
-            <span class="mt-1 block text-xs text-slate-500">قبل توقف استقبال الطلبات — يجب أن يكون ≤ حد التنبيه</span>
+            <span class="mt-1 block text-xs text-slate-500">قبل توقف الاستقبال — يجب أن يكون ≤ حد التنبيه</span>
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">حد رصيد تفعيل استقبال الحرفي</span>
+            <input v-model.number="walletForm.craftsmanAvailabilityMinBalance" type="number" min="0" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
+            <span class="mt-1 block text-xs text-slate-500">لا يمكن تفعيل "متاح الآن" تحته</span>
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">حد رصيد فتح المحل</span>
+            <input v-model.number="walletForm.businessOpenMinBalance" type="number" min="0" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" />
+            <span class="mt-1 block text-xs text-slate-500">لا يمكن فتح المحل يدوياً تحته</span>
           </label>
         </div>
       </section>
@@ -150,6 +160,8 @@ type WalletKey =
   | 'welcomeCreditsAmount'
   | 'creditsWarningThreshold'
   | 'creditsCriticalThreshold'
+  | 'craftsmanAvailabilityMinBalance'
+  | 'businessOpenMinBalance'
 
 type SectionField = {
   key: SettingsKey
@@ -185,6 +197,8 @@ const walletForm = ref<Record<WalletKey, number | boolean>>({
   welcomeCreditsAmount: 5000,
   creditsWarningThreshold: 500,
   creditsCriticalThreshold: 200,
+  craftsmanAvailabilityMinBalance: 1000,
+  businessOpenMinBalance: 500,
 })
 
 const creditsForm = ref({
@@ -257,6 +271,8 @@ function applyData(data: Record<string, unknown>) {
   walletForm.value.welcomeCreditsAmount = Number(data.welcomeCreditsAmount ?? 5000)
   walletForm.value.creditsWarningThreshold = Number(data.creditsWarningThreshold ?? 500)
   walletForm.value.creditsCriticalThreshold = Number(data.creditsCriticalThreshold ?? 200)
+  walletForm.value.craftsmanAvailabilityMinBalance = Number(data.craftsmanAvailabilityMinBalance ?? 1000)
+  walletForm.value.businessOpenMinBalance = Number(data.businessOpenMinBalance ?? 500)
   creditsForm.value.zainCashAccountNumber = String(data.zainCashAccountNumber ?? '')
   creditsForm.value.superKeyAccountNumber = String(data.superKeyAccountNumber ?? '')
   creditsForm.value.walletWhatsAppNumber = String(data.walletWhatsAppNumber ?? '')
@@ -278,14 +294,24 @@ async function load() {
   }
 }
 
-function validateWallet(): string | null {
+function validateWallet(): { error: string | null; warning: string | null } {
   const w = Number(walletForm.value.welcomeCreditsAmount)
   const warn = Number(walletForm.value.creditsWarningThreshold)
   const crit = Number(walletForm.value.creditsCriticalThreshold)
-  if (w < 0) return 'رصيد الترحيب يجب أن يكون ≥ 0'
-  if (warn <= 0 || crit <= 0) return 'حدود التنبيه يجب أن تكون أكبر من صفر'
-  if (crit > warn) return 'الحد الحرج يجب أن يكون ≤ حد التنبيه البرتقالي'
-  return null
+  const craftsmanMin = Number(walletForm.value.craftsmanAvailabilityMinBalance)
+  const businessMin = Number(walletForm.value.businessOpenMinBalance)
+  if (w < 0) return { error: 'رصيد الترحيب يجب أن يكون ≥ 0', warning: null }
+  if (warn < 0 || crit < 0 || craftsmanMin < 0 || businessMin < 0) {
+    return { error: 'جميع المبالغ يجب أن تكون ≥ 0', warning: null }
+  }
+  if (warn > 0 && crit > 0 && crit > warn) {
+    return { error: 'الحد الحرج يجب أن يكون ≤ حد التنبيه البرتقالي', warning: null }
+  }
+  const warning =
+    businessMin > craftsmanMin
+      ? 'تنبيه: حد فتح المحل أعلى من حد تفعيل الحرفي — قد يكون هذا غير متوقع'
+      : null
+  return { error: null, warning }
 }
 
 function buildPatch(): Record<string, unknown> {
@@ -300,11 +326,12 @@ function buildPatch(): Record<string, unknown> {
 }
 
 async function save() {
-  const validationError = validateWallet()
+  const { error: validationError, warning: validationWarning } = validateWallet()
   if (validationError) {
     toast.warning(validationError)
     return
   }
+  if (validationWarning) toast.info(validationWarning)
   const patch = buildPatch()
   if (!Object.keys(patch).length) {
     toast.info('لا توجد تغييرات للحفظ')
