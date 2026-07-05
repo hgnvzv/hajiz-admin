@@ -39,7 +39,7 @@ export const privacyContent: Record<PublicLocale, LegalPageContent> = {
       { title: 'حذف الحساب', paragraphs: ['يمكن للمستخدم طلب حذف حسابه وجميع بياناته من خلال التطبيق أو التواصل مع الدعم.'] },
       { title: 'ملفات تعريف الارتباط', paragraphs: ['قد يستخدم الموقع ملفات تعريف الارتباط لتحسين الأداء.'] },
       { title: 'التعديلات', paragraphs: ['قد نقوم بتحديث سياسة الخصوصية في أي وقت.'] },
-      { title: 'التواصل معنا', paragraphs: ['البريد الإلكتروني: support@hajiz.app', 'الموقع: https://hajiz.app'] },
+      { title: 'التواصل معنا', paragraphs: ['البريد الإلكتروني: atfsucy.com@gmail.com', 'رقم الهاتف: +964 7707752085'] },
     ],
   },
   en: {
@@ -66,7 +66,7 @@ export const privacyContent: Record<PublicLocale, LegalPageContent> = {
       { title: 'Account Deletion', paragraphs: ['Users may request deletion of their account and data through the app or by contacting support.'] },
       { title: 'Cookies', paragraphs: ['This website may use cookies to improve performance.'] },
       { title: 'Changes', paragraphs: ['We may update this Privacy Policy at any time.'] },
-      { title: 'Contact Us', paragraphs: ['Email: support@hajiz.app', 'Website: https://hajiz.app'] },
+      { title: 'Contact Us', paragraphs: ['Email: atfsucy.com@gmail.com', 'Phone: +964 7707752085'] },
     ],
   },
 }
@@ -91,7 +91,7 @@ export const termsContent: Record<PublicLocale, LegalPageContent> = {
       { title: 'المسؤولية', paragraphs: ['تطبيق حاجز غير مسؤول عن جودة تنفيذ الخدمة وإنما يوفر منصة لربط العملاء بمقدمي الخدمات.'] },
       { title: 'إيقاف الحساب', paragraphs: ['يحق للإدارة إيقاف أي حساب يخالف السياسات.'] },
       { title: 'التعديلات', paragraphs: ['يجوز تعديل الشروط في أي وقت.'] },
-      { title: 'التواصل', paragraphs: ['support@hajiz.app'] },
+      { title: 'التواصل', paragraphs: ['atfsucy.com@gmail.com'] },
     ],
   },
   en: {
@@ -113,7 +113,7 @@ export const termsContent: Record<PublicLocale, LegalPageContent> = {
       { title: 'Liability', paragraphs: ['HAJIZ is not responsible for service quality; it provides a platform connecting customers and providers.'] },
       { title: 'Account Suspension', paragraphs: ['Management may suspend any account that violates policies.'] },
       { title: 'Changes', paragraphs: ['These terms may be updated at any time.'] },
-      { title: 'Contact', paragraphs: ['support@hajiz.app'] },
+      { title: 'Contact', paragraphs: ['atfsucy.com@gmail.com'] },
     ],
   },
 }
@@ -153,7 +153,8 @@ export const deleteAccountContent: Record<PublicLocale, LegalPageContent> = {
         title: 'هل تحتاج مساعدة؟',
         paragraphs: [
           'إذا واجهت مشكلة في حذف حسابك أو لم تجد خيار الحذف في التطبيق، تواصل مع فريق الدعم:',
-          'support@hajiz.app',
+          'atfsucy.com@gmail.com',
+          'رقم الهاتف: +964 7707752085',
         ],
       },
     ],
@@ -192,7 +193,8 @@ export const deleteAccountContent: Record<PublicLocale, LegalPageContent> = {
         title: 'Need Help?',
         paragraphs: [
           'If you have trouble deleting your account or cannot find the delete option in the app, contact our support team:',
-          'support@hajiz.app',
+          'atfsucy.com@gmail.com',
+          'Phone: +964 7707752085',
         ],
       },
     ],
