@@ -99,11 +99,51 @@
           <div><dt class="text-[#6B7280]">خط العرض / الطول</dt><dd class="font-mono text-xs font-bold">{{ coordText }}</dd></div>
           <div><dt class="text-[#6B7280]">معتمد</dt><dd class="font-bold">{{ boolAr(biz.isApproved) }}</dd></div>
           <div><dt class="text-[#6B7280]">نشط</dt><dd class="font-bold">{{ boolAr(biz.isActive) }}</dd></div>
+          <div><dt class="text-[#6B7280]">التصنيف</dt><dd class="font-bold">{{ biz.categoryName ?? biz.category ?? '—' }}</dd></div>
           <div v-if="biz.isOpen !== undefined && biz.isOpen !== null">
             <dt class="text-[#6B7280]">مفتوح الآن</dt>
             <dd class="font-bold">{{ biz.isOpen ? 'نعم' : 'لا' }}</dd>
           </div>
         </dl>
+
+        <section class="mt-6 rounded-xl border border-border bg-[#F8F8FC] p-5">
+          <h4 class="mb-4 font-black text-[#1A1A2E]">إعدادات الحجز — اختيار المناسبة</h4>
+          <dl class="mb-4 grid gap-3 text-sm md:grid-cols-2">
+            <div>
+              <dt class="text-[#6B7280]">الافتراضي من التصنيف</dt>
+              <dd class="font-bold">{{ boolAr(categoryOccasionDefault) }}</dd>
+            </div>
+            <div>
+              <dt class="text-[#6B7280]">القيمة الفعلية</dt>
+              <dd class="font-bold text-primary-dark">
+                {{ boolAr(effectiveOccasion) }}
+                <span class="mr-1 text-xs font-normal text-[#6B7280]">({{ effectiveOccasionLabel }})</span>
+              </dd>
+            </div>
+          </dl>
+          <label class="mb-2 block text-xs font-bold text-[#6B7280]">تجاوز إعداد المحل</label>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="opt in occasionOverrideOptions"
+              :key="opt.value"
+              type="button"
+              class="rounded-xl px-4 py-2 text-sm font-bold transition"
+              :class="occasionOverride === opt.value ? 'bg-primary text-white' : 'bg-white text-[#6B7280] ring-1 ring-border'"
+              @click="occasionOverride = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+          <button
+            type="button"
+            class="mt-4 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+            :disabled="savingOccasion"
+            @click="saveOccasionOverride"
+          >
+            {{ savingOccasion ? 'جاري الحفظ…' : 'حفظ إعداد المناسبة' }}
+          </button>
+        </section>
+
         <div v-if="hours.length" class="mt-6 overflow-x-auto">
           <h4 class="mb-2 font-bold">أوقات الدوام</h4>
           <table class="w-full text-sm">
@@ -255,6 +295,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import {
   getBusinessDetail,
+  updateBusiness,
   approveBusiness,
   suspendBusiness,
   activateBusiness,
@@ -361,6 +402,47 @@ const recentBookings = computed(() => {
 const showSuspend = ref(false)
 const suspendReason = ref('')
 const showDelete = ref(false)
+const savingOccasion = ref(false)
+const occasionOverride = ref<'inherit' | 'enabled' | 'disabled'>('inherit')
+
+const occasionOverrideOptions = [
+  { value: 'inherit' as const, label: 'وراثة من التصنيف' },
+  { value: 'enabled' as const, label: 'مفعّل' },
+  { value: 'disabled' as const, label: 'معطّل' },
+]
+
+const categoryOccasionDefault = computed(() => {
+  const b = biz.value
+  if (!b) return false
+  if (b.categorySupportsOccasionSelection != null) return Boolean(b.categorySupportsOccasionSelection)
+  const cat = b.category
+  if (cat && typeof cat === 'object' && (cat as Record<string, unknown>).supportsOccasionSelection != null) {
+    return Boolean((cat as Record<string, unknown>).supportsOccasionSelection)
+  }
+  return false
+})
+
+const effectiveOccasion = computed(() => {
+  if (occasionOverride.value === 'enabled') return true
+  if (occasionOverride.value === 'disabled') return false
+  return categoryOccasionDefault.value
+})
+
+const effectiveOccasionLabel = computed(() => {
+  if (occasionOverride.value === 'inherit') return 'موروث من التصنيف'
+  return 'مُعدّل يدوياً'
+})
+
+function syncOccasionOverrideFromBusiness() {
+  if (!biz.value) return
+  const b = biz.value
+  const explicit =
+    b.businessSupportsOccasionSelection ??
+    b.supportsOccasionSelectionOverride
+  if (explicit === true) occasionOverride.value = 'enabled'
+  else if (explicit === false) occasionOverride.value = 'disabled'
+  else occasionOverride.value = 'inherit'
+}
 
 function statusLabel(s: unknown) {
   const m: Record<string, string> = {
@@ -435,11 +517,31 @@ async function load() {
     const id = route.params.id as string
     const res = await getBusinessDetail(id)
     biz.value = res.data as Record<string, unknown>
+    syncOccasionOverrideFromBusiness()
   } catch (e) {
     biz.value = null
     toast.error(apiMessage(e))
   } finally {
     loading.value = false
+  }
+}
+
+async function saveOccasionOverride() {
+  savingOccasion.value = true
+  try {
+    const payload: Record<string, unknown> = {
+      supportsOccasionSelection:
+        occasionOverride.value === 'inherit'
+          ? null
+          : occasionOverride.value === 'enabled',
+    }
+    await updateBusiness(String(route.params.id), payload)
+    toast.success('تم حفظ إعداد المناسبة')
+    load()
+  } catch (e) {
+    toast.error(apiMessage(e, 'تعذر حفظ الإعداد'))
+  } finally {
+    savingOccasion.value = false
   }
 }
 

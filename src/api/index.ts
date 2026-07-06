@@ -52,6 +52,9 @@ export const getBusinesses = (params?: Record<string, unknown>) =>
 
 export const getBusinessDetail = (id: string) => api.get(`/admin/businesses/${id}`)
 
+export const updateBusiness = (id: string, data: Record<string, unknown>) =>
+  api.put(`/admin/businesses/${id}`, data)
+
 export const approveBusiness = (id: string) => api.put(`/admin/businesses/${id}/approve`)
 
 export const toggleBusiness = (id: string) => api.put(`/admin/businesses/${id}/toggle`)

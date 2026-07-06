@@ -20,13 +20,16 @@
             <th class="px-4 py-3">الاسم إنجليزي</th>
             <th class="px-4 py-3">الترتيب</th>
             <th class="px-4 py-3">المحلات</th>
+            <th class="px-4 py-3">مسار الحجز</th>
+            <th class="px-4 py-3">النوع (قديم)</th>
+            <th class="px-4 py-3">إعداد الحجز</th>
             <th class="px-4 py-3">الحالة</th>
             <th class="px-4 py-3">إجراءات</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
           <tr v-if="!items.length">
-            <td colspan="7" class="px-4 py-14 text-center text-[#6B7280]">لا توجد تصنيفات</td>
+            <td colspan="10" class="px-4 py-14 text-center text-[#6B7280]">لا توجد تصنيفات</td>
           </tr>
           <template v-for="c in items" :key="c.id">
           <tr class="hover:bg-primary-light/40">
@@ -39,9 +42,20 @@
               <span v-else class="text-2xl">{{ c.icon || '📁' }}</span>
             </td>
             <td class="px-4 py-3 font-bold">{{ c.nameAr }}</td>
-            <td class="px-4 py-3 text-[#6B7280]">{{ c.name ?? c.nameEn ?? '—' }}</td>
+            <td class="px-4 py-3 text-[#6B7280]">{{ c.name ?? '—' }}</td>
             <td class="px-4 py-3">{{ c.displayOrder ?? 0 }}</td>
             <td class="px-4 py-3">{{ c.businessCount ?? 0 }}</td>
+            <td class="px-4 py-3">
+              <span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-800">
+                {{ bookingFlowLabel(c.bookingFlow) }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-xs font-bold text-slate-600">{{ bookingTypeLabel(c.bookingType) }}</td>
+            <td class="px-4 py-3">
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700" :title="bookingConfigSummary(c)">
+                {{ bookingConfigSummary(c) }}
+              </span>
+            </td>
             <td class="px-4 py-3">
               <span
                 class="rounded-full px-2 py-0.5 text-xs font-bold"
@@ -69,7 +83,7 @@
             </td>
           </tr>
           <tr v-if="c.subCategories?.length" class="bg-slate-50/80">
-            <td colspan="7" class="px-6 py-4">
+            <td colspan="10" class="px-6 py-4">
               <div class="mb-2 text-xs font-black text-slate-500">التصنيفات الفرعية</div>
               <div class="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 <div
@@ -101,22 +115,25 @@
       class="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 p-4"
       @click.self="modalOpen = false"
     >
-      <div class="w-full max-w-md rounded-2xl bg-surface p-6 shadow-xl" dir="rtl" @click.stop>
+      <div class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-surface p-6 shadow-xl" dir="rtl" @click.stop>
         <h3 class="text-lg font-black">{{ editingId ? 'تعديل تصنيف' : 'تصنيف جديد' }}</h3>
         <form class="mt-4 space-y-4" @submit.prevent="save">
-          <div>
-            <label class="mb-1 block text-xs font-bold">الاسم بالعربية *</label>
-            <input v-model="form.nameAr" required class="w-full rounded-xl border border-border px-3 py-2.5" />
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-bold">الاسم بالإنجليزية</label>
-            <input v-model="form.name" class="w-full rounded-xl border border-border px-3 py-2.5" />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-xs font-bold">الاسم بالعربية *</label>
+              <input v-model="form.nameAr" required class="w-full rounded-xl border border-border px-3 py-2.5" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-bold">الاسم بالإنجليزية</label>
+              <input v-model="form.name" class="w-full rounded-xl border border-border px-3 py-2.5" />
+            </div>
           </div>
           <IconPickerInput v-model="form.icon" label="الأيقونة" />
           <div>
             <label class="mb-1 block text-xs font-bold">الترتيب</label>
             <input v-model.number="form.displayOrder" type="number" min="0" class="w-full rounded-xl border border-border px-3 py-2.5" />
           </div>
+          <CategoryBookingFields v-model="bookingForm" />
           <div v-if="editingId" class="flex items-center gap-2">
             <input id="active" v-model="form.isActive" type="checkbox" class="size-4 accent-primary" />
             <label for="active" class="text-sm font-bold">التصنيف مفعّل</label>
@@ -184,30 +201,22 @@ import {
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import IconPickerInput from '@/components/common/IconPickerInput.vue'
+import CategoryBookingFields from '@/components/admin/CategoryBookingFields.vue'
+import type { CategoryBookingFormState, CategoryDto } from '@/types/category'
+import {
+  bookingConfigSummary,
+  bookingFlowLabel,
+  bookingTypeLabel,
+  DEFAULT_CATEGORY_BOOKING,
+  isValidBookingFlow,
+  readCategoryBooking,
+} from '@/utils/categoryBooking'
 import { apiMessage } from '@/utils/error'
 
 const toast = useToast()
 
 const loading = ref(true)
-const items = ref<
-  {
-    id: string
-    nameAr?: string
-    name?: string
-    nameEn?: string
-    icon?: string
-    isActive?: boolean
-    displayOrder?: number
-    businessCount?: number
-    subCategories?: {
-      id: string
-      name?: string
-      nameAr?: string
-      displayOrder?: number
-      isActive?: boolean
-    }[]
-  }[]
->([])
+const items = ref<CategoryDto[]>([])
 
 const modalOpen = ref(false)
 const editingId = ref<string | null>(null)
@@ -218,6 +227,7 @@ const form = ref({
   displayOrder: 0,
   isActive: true,
 })
+const bookingForm = ref<CategoryBookingFormState>({ ...DEFAULT_CATEGORY_BOOKING })
 const subModalOpen = ref(false)
 const editingSubId = ref<string | null>(null)
 const currentCategoryId = ref<string | null>(null)
@@ -235,7 +245,7 @@ async function load() {
   try {
     const res = await getCategories()
     const raw = res.data
-    items.value = Array.isArray(raw) ? raw : []
+    items.value = (Array.isArray(raw) ? raw : []) as CategoryDto[]
   } catch (e) {
     toast.error(apiMessage(e))
   } finally {
@@ -243,33 +253,54 @@ async function load() {
   }
 }
 
+function resetBookingForm() {
+  bookingForm.value = { ...DEFAULT_CATEGORY_BOOKING }
+}
+
 function openCreate() {
   editingId.value = null
   form.value = { nameAr: '', name: '', icon: '', displayOrder: items.value.length + 1, isActive: true }
+  resetBookingForm()
   modalOpen.value = true
 }
 
-function openEdit(c: (typeof items.value)[0]) {
+function openEdit(c: CategoryDto) {
   editingId.value = c.id
   form.value = {
     nameAr: c.nameAr ?? '',
-    name: c.name ?? c.nameEn ?? '',
+    name: c.name ?? '',
     icon: c.icon ?? '',
     displayOrder: c.displayOrder ?? 0,
     isActive: c.isActive !== false,
   }
+  bookingForm.value = readCategoryBooking(c as unknown as Record<string, unknown>)
   modalOpen.value = true
+}
+
+function buildCategoryPayload(): Record<string, unknown> {
+  if (!isValidBookingFlow(bookingForm.value.bookingFlow)) {
+    throw new Error('مسار الحجز غير صالح')
+  }
+  return {
+    nameAr: form.value.nameAr,
+    name: form.value.name || undefined,
+    icon: form.value.icon || undefined,
+    displayOrder: form.value.displayOrder,
+    bookingType: bookingForm.value.bookingType,
+    bookingFlow: bookingForm.value.bookingFlow,
+    requiresServices: bookingForm.value.requiresServices,
+    requiresStaffSelection: bookingForm.value.requiresStaffSelection,
+    requiresGuestCount: bookingForm.value.requiresGuestCount,
+    supportsOccasionSelection: bookingForm.value.supportsOccasionSelection,
+    requiresOccasionSelection: bookingForm.value.requiresOccasionSelection,
+  }
 }
 
 async function save() {
   try {
-    const payload: Record<string, unknown> = {
-      nameAr: form.value.nameAr,
-      name: form.value.name || undefined,
-      icon: form.value.icon || undefined,
-      displayOrder: form.value.displayOrder,
-    }
+    const payload = buildCategoryPayload()
     if (editingId.value) {
+      if (form.value.isActive !== undefined) payload.isActive = form.value.isActive
       await updateCategory(editingId.value, payload)
       toast.success('تم تحديث التصنيف')
     } else {
@@ -279,11 +310,11 @@ async function save() {
     modalOpen.value = false
     load()
   } catch (e) {
-    toast.error(apiMessage(e))
+    toast.error(apiMessage(e, e instanceof Error ? e.message : 'تعذر حفظ التصنيف'))
   }
 }
 
-async function toggleCategoryRow(c: (typeof items.value)[0]) {
+async function toggleCategoryRow(c: CategoryDto) {
   try {
     await toggleCategory(c.id)
     toast.success('تم تحديث حالة التصنيف')
@@ -293,7 +324,7 @@ async function toggleCategoryRow(c: (typeof items.value)[0]) {
   }
 }
 
-function openSubCreate(c: (typeof items.value)[0]) {
+function openSubCreate(c: CategoryDto) {
   editingSubId.value = null
   currentCategoryId.value = c.id
   subForm.value = {
@@ -305,7 +336,7 @@ function openSubCreate(c: (typeof items.value)[0]) {
   subModalOpen.value = true
 }
 
-function openSubEdit(c: (typeof items.value)[0], sub: NonNullable<(typeof items.value)[0]['subCategories']>[0]) {
+function openSubEdit(c: CategoryDto, sub: NonNullable<CategoryDto['subCategories']>[0]) {
   editingSubId.value = sub.id
   currentCategoryId.value = c.id
   subForm.value = {
@@ -339,7 +370,7 @@ async function saveSub() {
   }
 }
 
-async function toggleSub(sub: NonNullable<(typeof items.value)[0]['subCategories']>[0]) {
+async function toggleSub(sub: NonNullable<CategoryDto['subCategories']>[0]) {
   try {
     await toggleSubCategory(sub.id)
     toast.success('تم تحديث التصنيف الفرعي')
@@ -349,7 +380,7 @@ async function toggleSub(sub: NonNullable<(typeof items.value)[0]['subCategories
   }
 }
 
-function tryDelete(c: (typeof items.value)[0]) {
+function tryDelete(c: CategoryDto) {
   if ((c.businessCount ?? 0) > 0) {
     toast.warning(`لا يمكن حذف التصنيف لأنه مرتبط بـ ${c.businessCount} محل.`)
     return
