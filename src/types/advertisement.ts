@@ -2,7 +2,7 @@ export type AdvertisementStatus = 'Pending' | 'Active' | 'Rejected' | 'Expired' 
 
 export interface AdvertisementDto {
   id: string
-  businessId: string
+  businessId?: string | null
   businessName: string
   title: string
   description: string
@@ -15,6 +15,20 @@ export interface AdvertisementDto {
   status: AdvertisementStatus
   displayOrder: number
   adminNotes?: string | null
+  targetDomainType?: number | null
+  targetDomainTypeName?: string | null
+  placement?: number
+  placementName?: string | null
+}
+
+export interface CreatePlatformAdvertisementDto {
+  title: string
+  description: string
+  durationDays: number
+  targetDomainType: number
+  placement: number
+  businessId?: string | null
+  displayOrder: number
 }
 
 export interface UpdateAdvertisementDto {

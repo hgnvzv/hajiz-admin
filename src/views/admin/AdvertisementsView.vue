@@ -1,5 +1,117 @@
 <template>
   <div class="space-y-6" dir="rtl">
+    <section
+      class="rounded-2xl border border-violet-200 bg-white p-5 shadow-sm"
+      aria-labelledby="platform-campaign-heading"
+    >
+      <button
+        type="button"
+        class="flex w-full items-center justify-between gap-3 text-right"
+        @click="platformOpen = !platformOpen"
+      >
+        <span>
+          <h2 id="platform-campaign-heading" class="text-lg font-black text-slate-900">حملة منصة جديدة</h2>
+          <p class="mt-0.5 text-sm text-slate-500">إنشاء إعلان يستهدف مجالاً وموضعاً محدداً في التطبيق (يُفعّل فوراً)</p>
+        </span>
+        <span class="rounded-lg bg-violet-50 px-3 py-1 text-sm font-bold text-violet-700">{{ platformOpen ? 'إخفاء' : 'عرض' }}</span>
+      </button>
+
+      <div v-show="platformOpen" class="mt-5 border-t border-slate-100 pt-5">
+        <form class="grid gap-6 lg:grid-cols-2" @submit.prevent="submitPlatform">
+          <div class="space-y-4">
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">العنوان <span class="text-red-500">*</span></span>
+              <input v-model="platformForm.title" type="text" required class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="platformSaving" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">الوصف</span>
+              <textarea v-model="platformForm.description" rows="3" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="platformSaving" />
+            </label>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-sm font-bold text-slate-700">المجال <span class="text-red-500">*</span></span>
+                <select v-model.number="platformForm.targetDomainType" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="platformSaving">
+                  <option :value="1">عيادة / طبي</option>
+                  <option :value="3">مطعم</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-sm font-bold text-slate-700">الموضع <span class="text-red-500">*</span></span>
+                <select v-model.number="platformForm.placement" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="platformSaving">
+                  <option :value="1">مركز الاكتشاف</option>
+                  <option :value="2">رئيسية المطاعم</option>
+                  <option :value="3">رئيسية الطبي</option>
+                </select>
+              </label>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-sm font-bold text-slate-700">المدة (أيام)</span>
+                <input v-model.number="platformForm.durationDays" type="number" min="1" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="platformSaving" />
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-sm font-bold text-slate-700">ترتيب العرض</span>
+                <input v-model.number="platformForm.displayOrder" type="number" min="0" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="platformSaving" />
+              </label>
+            </div>
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">معرّف النشاط (اختياري)</span>
+              <input
+                v-model="platformForm.businessId"
+                type="text"
+                dir="ltr"
+                class="w-full rounded-xl border border-slate-200 px-4 py-3 text-left"
+                placeholder="00000000-0000-0000-0000-000000000000"
+                :disabled="platformSaving"
+              />
+              <p class="mt-1 text-xs text-slate-500">لربط الإعلان بنشاط محدد؛ اتركه فارغاً لحملة عامة على المجال.</p>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">الصورة <span class="text-red-500">*</span></span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                class="w-full text-sm"
+                :disabled="platformSaving"
+                @change="onPlatformImage"
+              />
+            </label>
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button
+                type="submit"
+                class="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                :disabled="platformSaving || !canSubmitPlatform"
+              >
+                {{ platformSaving ? 'جاري الإنشاء…' : 'نشر الحملة' }}
+              </button>
+              <button type="button" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold" :disabled="platformSaving" @click="resetPlatformForm">
+                إعادة تعيين
+              </button>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-slate-500">معاينة البطاقة</p>
+            <div class="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <img
+                v-if="platformImagePreview"
+                :src="platformImagePreview"
+                alt=""
+                class="aspect-[16/9] w-full object-cover bg-slate-100"
+              />
+              <div v-else class="flex aspect-[16/9] items-center justify-center bg-slate-100 text-sm text-slate-400">صورة الإعلان</div>
+              <p class="px-4 py-3 text-xs text-slate-500">{{ platformPlacementPreview }} · {{ platformDomainPreview }}</p>
+              <div class="px-4 pb-4">
+                <h4 class="text-lg font-black text-slate-900">{{ platformForm.title.trim() || 'عنوان الإعلان' }}</h4>
+                <p class="mt-1 line-clamp-3 text-sm text-slate-600">{{ platformForm.description.trim() || 'وصف الإعلان يظهر هنا…' }}</p>
+                <p class="mt-2 text-xs text-slate-400">{{ platformForm.durationDays }} يوم · ترتيب {{ platformForm.displayOrder }}</p>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div class="flex flex-wrap items-center gap-3">
         <span class="text-sm font-bold text-slate-600">الحالة:</span>
@@ -211,7 +323,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineComponent, h, onMounted, ref } from 'vue'
+import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
 import { useToast } from 'vue-toastification'
 import { adminAdvertisementsApi } from '@/api/adminAdvertisements'
 import AdvertisementEditModal from '@/components/admin/AdvertisementEditModal.vue'
@@ -221,7 +333,12 @@ import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { apiMessage } from '@/utils/error'
 import { formatDateShort, formatMoney } from '@/utils/format'
-import { advertisementStatusClass, advertisementStatusLabel, normalizePaged } from '@/utils/admin'
+import {
+  advertisementStatusClass,
+  advertisementStatusLabel,
+  isGuid,
+  normalizePaged,
+} from '@/utils/admin'
 import type { AdvertisementDto } from '@/types/advertisement'
 
 const Info = defineComponent({
@@ -279,6 +396,95 @@ const orderAd = ref<AdvertisementDto | null>(null)
 const orderValue = ref(0)
 
 const actionLoading = ref(false)
+
+const platformOpen = ref(false)
+const platformSaving = ref(false)
+const platformImageFile = ref<File | null>(null)
+const platformImagePreview = ref('')
+const platformForm = reactive({
+  title: '',
+  description: '',
+  durationDays: 7,
+  targetDomainType: 1,
+  placement: 1,
+  businessId: '',
+  displayOrder: 0,
+})
+
+const PLATFORM_DOMAIN_LABELS: Record<number, string> = {
+  1: 'عيادة / طبي',
+  3: 'مطعم',
+}
+
+const PLATFORM_PLACEMENT_LABELS: Record<number, string> = {
+  1: 'مركز الاكتشاف',
+  2: 'رئيسية المطاعم',
+  3: 'رئيسية الطبي',
+}
+
+const platformDomainPreview = computed(() => PLATFORM_DOMAIN_LABELS[platformForm.targetDomainType] ?? '—')
+const platformPlacementPreview = computed(() => PLATFORM_PLACEMENT_LABELS[platformForm.placement] ?? '—')
+
+const canSubmitPlatform = computed(
+  () =>
+  !!platformForm.title.trim() &&
+  platformForm.durationDays >= 1 &&
+  !!platformImageFile.value &&
+  (!platformForm.businessId.trim() || isGuid(platformForm.businessId)),
+)
+
+function onPlatformImage(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  platformImageFile.value = file ?? null
+  if (platformImagePreview.value) URL.revokeObjectURL(platformImagePreview.value)
+  platformImagePreview.value = file ? URL.createObjectURL(file) : ''
+}
+
+function resetPlatformForm() {
+  platformForm.title = ''
+  platformForm.description = ''
+  platformForm.durationDays = 7
+  platformForm.targetDomainType = 1
+  platformForm.placement = 1
+  platformForm.businessId = ''
+  platformForm.displayOrder = 0
+  platformImageFile.value = null
+  if (platformImagePreview.value) URL.revokeObjectURL(platformImagePreview.value)
+  platformImagePreview.value = ''
+}
+
+async function submitPlatform() {
+  if (!platformImageFile.value || !canSubmitPlatform.value) return
+  const bid = platformForm.businessId.trim()
+  if (bid && !isGuid(bid)) {
+    toast.warning('معرّف النشاط غير صالح')
+    return
+  }
+  platformSaving.value = true
+  try {
+    await adminAdvertisementsApi.createPlatform(
+      {
+        title: platformForm.title.trim(),
+        description: platformForm.description.trim(),
+        durationDays: platformForm.durationDays,
+        targetDomainType: platformForm.targetDomainType,
+        placement: platformForm.placement,
+        businessId: bid || null,
+        displayOrder: platformForm.displayOrder,
+      },
+      platformImageFile.value,
+    )
+    toast.success('تم إنشاء حملة المنصة وتفعيلها')
+    resetPlatformForm()
+    platformOpen.value = false
+    load()
+  } catch (e) {
+    toast.error(apiMessage(e, 'تعذر إنشاء حملة المنصة'))
+  } finally {
+    platformSaving.value = false
+  }
+}
 
 async function load() {
   loading.value = true

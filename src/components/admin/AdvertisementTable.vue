@@ -30,7 +30,12 @@
 
     <template #cell-titleBusiness="{ row }">
       <p class="font-bold text-slate-900">{{ row.title ?? '—' }}</p>
-      <p class="text-xs text-slate-500">{{ row.businessName ?? '—' }}</p>
+      <p class="text-xs text-slate-500">{{ row.businessName || 'حملة منصة' }}</p>
+    </template>
+
+    <template #cell-targeting="{ row }">
+      <p class="text-sm font-semibold text-slate-800">{{ advertisementDomainLabel(row) }}</p>
+      <p class="text-xs text-slate-500">{{ advertisementPlacementLabel(row) }}</p>
     </template>
 
     <template #cell-status="{ row }">
@@ -114,7 +119,12 @@
 
 <script setup lang="ts">
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
-import { advertisementStatusClass, advertisementStatusLabel } from '@/utils/admin'
+import {
+  advertisementDomainLabel,
+  advertisementPlacementLabel,
+  advertisementStatusClass,
+  advertisementStatusLabel,
+} from '@/utils/admin'
 import { formatDateShort, formatMoney } from '@/utils/format'
 import type { AdvertisementDto } from '@/types/advertisement'
 
@@ -144,6 +154,7 @@ function asAd(row: Record<string, unknown>): AdvertisementDto {
 const columns: ColumnDef[] = [
   { key: 'thumbnail', label: 'صورة' },
   { key: 'titleBusiness', label: 'العنوان / المحل' },
+  { key: 'targeting', label: 'المجال / الموضع' },
   { key: 'status', label: 'الحالة' },
   { key: 'durationDays', label: 'المدة' },
   { key: 'totalCost', label: 'التكلفة' },

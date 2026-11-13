@@ -210,3 +210,37 @@ export function advertisementStatusClass(status: unknown) {
   if (k === 'Expired') return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
   return 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'
 }
+
+const AD_DOMAIN_LABELS: Record<string, string> = {
+  '1': 'عيادة / طبي',
+  Clinic: 'عيادة / طبي',
+  '3': 'مطعم',
+  Restaurant: 'مطعم',
+}
+
+const AD_PLACEMENT_LABELS: Record<string, string> = {
+  '0': 'الرئيسية (قديم)',
+  LegacyHome: 'الرئيسية (قديم)',
+  '1': 'مركز الاكتشاف',
+  DiscoveryHub: 'مركز الاكتشاف',
+  '2': 'رئيسية المطاعم',
+  RestaurantHome: 'رئيسية المطاعم',
+  '3': 'رئيسية الطبي',
+  MedicalHome: 'رئيسية الطبي',
+}
+
+export function advertisementDomainLabel(row: Record<string, unknown>) {
+  const name = row.targetDomainTypeName ?? row.TargetDomainTypeName
+  if (name) return AD_DOMAIN_LABELS[String(name)] ?? String(name)
+  const n = row.targetDomainType ?? row.TargetDomainType
+  if (n !== null && n !== undefined && n !== '') return AD_DOMAIN_LABELS[String(n)] ?? String(n)
+  return '—'
+}
+
+export function advertisementPlacementLabel(row: Record<string, unknown>) {
+  const name = row.placementName ?? row.PlacementName
+  if (name) return AD_PLACEMENT_LABELS[String(name)] ?? String(name)
+  const n = row.placement ?? row.Placement
+  if (n !== null && n !== undefined && n !== '') return AD_PLACEMENT_LABELS[String(n)] ?? String(n)
+  return '—'
+}

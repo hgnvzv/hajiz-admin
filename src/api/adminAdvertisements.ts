@@ -2,6 +2,7 @@ import api from '@/api/index'
 import type {
   AdvertisementDto,
   AdvertisementListParams,
+  CreatePlatformAdvertisementDto,
   PagedResult,
   UpdateAdvertisementDto,
 } from '@/types/advertisement'
@@ -41,5 +42,20 @@ export const adminAdvertisementsApi = {
 
   reject(id: string, reason: string) {
     return api.put<AdvertisementDto>(`/admin/advertisements/${id}/reject`, { reason })
+  },
+
+  createPlatform(body: CreatePlatformAdvertisementDto, image: File) {
+    const fd = new FormData()
+    fd.append('title', body.title)
+    fd.append('description', body.description)
+    fd.append('durationDays', String(body.durationDays))
+    fd.append('targetDomainType', String(body.targetDomainType))
+    fd.append('placement', String(body.placement))
+    fd.append('displayOrder', String(body.displayOrder))
+    if (body.businessId?.trim()) fd.append('businessId', body.businessId.trim())
+    fd.append('image', image)
+    return api.post<AdvertisementDto>('/admin/advertisements/platform', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
   },
 }
