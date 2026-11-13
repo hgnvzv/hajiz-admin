@@ -166,7 +166,7 @@ const title = computed(() => String(item.value?.businessName ?? item.value?.name
 const domainType = computed(() => readDomainType(item.value))
 const isRestaurant = computed(() => isRestaurantDomain(domainType.value))
 const isMedical = computed(() => isMedicalDomain(domainType.value))
-const showRestaurantPanel = computed(() => isRestaurant.value || draftChecked.value)
+const showRestaurantPanel = computed(() => isRestaurant.value)
 
 const proposedTables = computed(() => {
   const raw = restaurantDraft.value?.proposedTables
@@ -212,7 +212,7 @@ async function loadRestaurantDraft(applicationId: string) {
     ])
     const draft = draftRes.data
     restaurantDraft.value = isDraftPayload(draft) ? draft : null
-    draftChecked.value = true
+    draftChecked.value = isRestaurant.value
     const list = Array.isArray(cuisinesRes.data)
       ? (cuisinesRes.data as Record<string, unknown>[])
       : []
@@ -221,7 +221,7 @@ async function loadRestaurantDraft(applicationId: string) {
     cuisineNameById.value = map
   } catch {
     restaurantDraft.value = null
-    draftChecked.value = isRestaurant.value
+    draftChecked.value = false
   } finally {
     draftLoading.value = false
   }
@@ -235,8 +235,11 @@ async function load() {
     item.value = res.data as Record<string, unknown>
     const nested = item.value.restaurantDraft
     if (isDraftPayload(nested)) restaurantDraft.value = nested
-    if (isRestaurantDomain(readDomainType(item.value)) || nested == null) {
+    if (isRestaurantDomain(readDomainType(item.value))) {
       await loadRestaurantDraft(String(route.params.id))
+    } else {
+      restaurantDraft.value = isDraftPayload(nested) ? (nested as Record<string, unknown>) : null
+      draftChecked.value = false
     }
   } catch (e) {
     error.value = apiMessage(e, t('common.error'))

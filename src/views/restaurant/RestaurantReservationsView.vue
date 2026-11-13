@@ -34,16 +34,13 @@ import { formatDateShort } from '@/utils/format'
 
 const toast = useToast()
 const statuses = [
-  { value: '1', label: 'معلق (Pending)' },
-  { value: '2', label: 'مقبول (Accepted)' },
-  { value: '3', label: 'مرفوض (Rejected)' },
-  { value: '4', label: 'مكتمل (Completed)' },
-  { value: '5', label: 'ملغى (Cancelled)' },
-  { value: '6', label: 'عدم حضور (NoShow)' },
-  { value: '7', label: 'منتهي (Expired)' },
-  { value: 'Pending', label: 'Pending' },
-  { value: 'Cancelled', label: 'Cancelled' },
-  { value: 'Expired', label: 'Expired' },
+  { value: 'Pending', label: 'معلق (Pending)' },
+  { value: 'Accepted', label: 'مقبول (Accepted)' },
+  { value: 'Rejected', label: 'مرفوض (Rejected)' },
+  { value: 'Completed', label: 'مكتمل (Completed)' },
+  { value: 'Cancelled', label: 'ملغى (Cancelled)' },
+  { value: 'NoShow', label: 'عدم حضور (NoShow)' },
+  { value: 'Expired', label: 'منتهي (Expired)' },
 ]
 const columns: ColumnDef[] = [
   { key: 'customerName', label: 'الزبون' },

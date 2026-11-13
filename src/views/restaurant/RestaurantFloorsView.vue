@@ -126,7 +126,7 @@ import { useToast } from 'vue-toastification'
 import {
   createAdminRestaurantFloor,
   createAdminRestaurantTable,
-  getPublicRestaurantFloors,
+  getAdminRestaurantFloors,
   getPublicRestaurants,
   updateAdminRestaurantFloor,
   updateAdminRestaurantTable,
@@ -199,13 +199,13 @@ async function reload() {
   loading.value = true
   listWarning.value = ''
   try {
-    const res = await getPublicRestaurantFloors(businessId.value)
+    const res = await getAdminRestaurantFloors(businessId.value)
     const raw = Array.isArray(res.data) ? res.data : ((res.data as { items?: unknown[] }).items ?? [])
     floors.value = (raw as Record<string, unknown>[]).map(parseFloor)
     if (!activeFloorId.value && floors.value[0]) activeFloorId.value = floors.value[0].id
     dirty.value = false
-  } catch {
-    listWarning.value = t('rest.notPublicFloors')
+  } catch (e) {
+    listWarning.value = apiMessage(e, t('rest.notPublicFloors'))
   } finally {
     loading.value = false
   }

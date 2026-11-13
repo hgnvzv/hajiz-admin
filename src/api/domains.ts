@@ -49,6 +49,15 @@ export const getPublicRestaurantMenu = (businessId: string) =>
 export const getPublicRestaurantFloors = (businessId: string) =>
   api.get(`/public/restaurant/restaurants/${businessId}/floors`)
 
+/** Admin floor plan read — includes inactive tables; no publicly-bookable gate. */
+export const getAdminRestaurantFloors = (businessId: string) => {
+  const id = businessId.trim()
+  if (!isGuid(id)) {
+    return Promise.reject(new Error('معرّف المطعم يجب أن يكون UUID'))
+  }
+  return api.get(`/admin/restaurant/businesses/${id}/floors`)
+}
+
 export const createAdminRestaurantFloor = (businessId: string, data: Record<string, unknown>) => {
   const id = businessId.trim()
   if (!isGuid(id)) {

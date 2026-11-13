@@ -42,8 +42,8 @@
       </div>
       <p v-if="domainFilter && !hasDomainField" class="mt-3 text-xs text-amber-800">
         {{ locale === 'ar'
-          ? 'عقد قائمة الطلبات الحالي لا يتضمن domainType. التصفية تعمل فقط إذا أعاد الخادم الحقل.'
-          : 'The current application list DTO does not include domainType. Filtering works only if the API returns that field.' }}
+          ? 'التصفية حسب المجال تعتمد على domainType من الخادم (مصدّر الآن في قائمة الطلبات).'
+          : 'Domain filtering uses server domainType (now included on the applications list).' }}
       </p>
     </div>
 
@@ -148,9 +148,15 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const res = await getApplications({ status: status.value || undefined, page: page.value, pageSize })
+    const wanted = domainFilter.value === '' ? null : Number(domainFilter.value)
+    const res = await getApplications({
+      status: status.value || undefined,
+      domainType: wanted != null && !Number.isNaN(wanted) ? wanted : undefined,
+      page: page.value,
+      pageSize,
+    })
     const d = normalizePaged(res.data)
-    hasDomainField.value = d.items.some((row) => readDomainType(row) != null)
+    hasDomainField.value = d.items.some((row) => readDomainType(row) != null) || wanted != null
     const q = search.value.trim().toLowerCase()
     let items = d.items
     if (q) {
@@ -158,12 +164,8 @@ async function load() {
         [row.businessName, row.ownerName, row.phone].some((v) => String(v ?? '').toLowerCase().includes(q)),
       )
     }
-    const wanted = domainFilter.value === '' ? null : Number(domainFilter.value)
-    if (wanted != null && !Number.isNaN(wanted)) {
-      items = items.filter((row) => readDomainType(row) === wanted)
-    }
     rows.value = items
-    total.value = q || wanted != null ? items.length : d.total
+    total.value = q ? items.length : d.total
   } catch (e) {
     error.value = apiMessage(e, t('common.error'))
   } finally {

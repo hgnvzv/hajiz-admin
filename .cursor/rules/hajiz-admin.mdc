@@ -1,0 +1,23 @@
+---
+description: HAJIZ Admin dashboard engineering rules
+alwaysApply: true
+---
+
+# HAJIZ — Admin Rules
+
+## Role
+- Admin owns restaurant floor/table geometry.
+- Owner/Manager can read floors per Backend auth.
+- Customers see published public floor plans only.
+- Do not expose private medical records without an explicit authorized Backend endpoint.
+
+## Integration
+- Use real admin APIs; do not invent contracts in the SPA.
+- Prefer admin floors read endpoints for unpublished restaurants (not public floors).
+- Surface `domainType` from Backend — never infer domain from category name.
+- Full RTL Arabic + LTR English via i18n; no hardcoded Arabic-only admin domain screens for new work.
+
+## Safety
+- No production deploy/migrations/data changes.
+- No mock rows presented as live businesses.
+---
