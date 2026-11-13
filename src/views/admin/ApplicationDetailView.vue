@@ -1,188 +1,245 @@
 <template>
-  <div class="space-y-6" dir="rtl">
-    <RouterLink to="/applications" class="inline-flex items-center text-sm font-bold text-blue-600">← رجوع إلى طلبات الانضمام</RouterLink>
+  <div class="space-y-6" :dir="dir">
+    <PageHeader
+      :title="title"
+      :crumbs="[
+        { label: t('nav.dashboard'), to: '/dashboard' },
+        { label: t('apps.title'), to: '/applications' },
+        { label: title },
+      ]"
+    >
+      <template #actions>
+        <RouterLink to="/applications" class="btn-secondary">{{ t('common.back') }}</RouterLink>
+      </template>
+    </PageHeader>
 
-    <div v-if="loading" class="rounded-2xl border border-slate-200 bg-white py-16"><LoadingSpinner /></div>
+    <div v-if="loading"><SkeletonRows /></div>
+    <ErrorBanner v-else-if="error" :message="error" :retry="load" :retry-label="t('common.retry')" />
     <template v-else-if="item">
-      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div class="page-card p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p class="text-sm text-slate-500">طلب انضمام</p>
-            <h2 class="mt-1 text-2xl font-black text-slate-900">{{ item.businessName ?? item.name ?? '—' }}</h2>
-            <p class="mt-2 text-sm text-slate-500">{{ item.description ?? item.address ?? '—' }}</p>
+            <p class="text-sm text-app-muted">{{ t('apps.identity') }}</p>
+            <h2 class="mt-1 text-2xl font-black">{{ title }}</h2>
+            <div class="mt-2"><DomainBadge :domain-type="item.domainType ?? item.businessDomainType" /></div>
           </div>
-          <span class="rounded-full px-3 py-1 text-sm font-bold" :class="statusClass(item.status)">
-            {{ statusLabel(item.status) }}
-          </span>
+          <span class="rounded-full px-3 py-1 text-sm font-bold" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
         </div>
-        <div class="mt-6 grid gap-4 md:grid-cols-3">
-          <Info label="صاحب المحل" :value="String(item.ownerName ?? item.userName ?? '—')" />
-          <Info label="الهاتف" :value="String(item.phone ?? item.ownerPhone ?? '—')" />
-          <Info label="المحافظة" :value="String(item.cityName ?? item.city ?? '—')" />
-          <Info label="التصنيف" :value="String(item.categoryName ?? '—')" />
-          <Info label="تاريخ الطلب" :value="formatDate(item.createdAt as string)" />
-          <Info label="العنوان" :value="String(item.address ?? '—')" />
-          <Info label="خط العرض" :value="coord(item.latitude)" />
-          <Info label="خط الطول" :value="coord(item.longitude)" />
-          <Info label="الوصف" :value="String(item.description ?? 'لا يوجد وصف')" />
-        </div>
+        <dl class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div><dt class="text-xs text-app-muted">{{ t('common.owner') }}</dt><dd class="font-bold">{{ item.ownerName ?? '—' }}</dd></div>
+          <div><dt class="text-xs text-app-muted">{{ t('common.phone') }}</dt><dd class="font-bold" dir="ltr">{{ item.phone ?? '—' }}</dd></div>
+          <div><dt class="text-xs text-app-muted">{{ t('common.address') }}</dt><dd class="font-bold">{{ item.address ?? '—' }}</dd></div>
+          <div><dt class="text-xs text-app-muted">{{ locale === 'ar' ? 'المحافظة' : 'City' }}</dt><dd class="font-bold">{{ item.city ?? item.cityName ?? '—' }}</dd></div>
+          <div><dt class="text-xs text-app-muted">{{ locale === 'ar' ? 'التصنيف' : 'Category' }}</dt><dd class="font-bold">{{ item.categoryName ?? '—' }}</dd></div>
+          <div><dt class="text-xs text-app-muted">{{ locale === 'ar' ? 'التاريخ' : 'Date' }}</dt><dd class="font-bold">{{ formatDate(item.createdAt as string) }}</dd></div>
+          <div class="sm:col-span-2"><dt class="text-xs text-app-muted">{{ locale === 'ar' ? 'الوصف' : 'Description' }}</dt><dd class="font-bold">{{ item.description ?? '—' }}</dd></div>
+        </dl>
       </div>
 
       <div class="grid gap-6 xl:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-black text-slate-900">التصنيفات الفرعية وساعات العمل</h3>
-          <div class="mt-4 flex flex-wrap gap-2">
-            <span v-for="s in subCategories" :key="s" class="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-blue-700">
-              {{ s }}
-            </span>
-            <p v-if="!subCategories.length" class="text-sm text-slate-500">لا توجد تصنيفات فرعية</p>
-          </div>
-          <div class="mt-5 space-y-2 text-sm">
-            <div v-for="h in workingHours" :key="String(h.dayName ?? h.day ?? h.dayOfWeek)" class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-              <div>
-                <span class="font-bold text-slate-900">{{ h.dayName ?? h.day ?? h.dayOfWeek ?? '—' }}</span>
-                <span class="mr-2 text-slate-500">{{ h.startTime ?? h.openTime ?? h.from ?? '—' }} - {{ h.endTime ?? h.closeTime ?? h.to ?? '—' }}</span>
-              </div>
-              <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="h.isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'">
-                {{ h.isOpen ? 'مفتوح' : 'مغلق' }}
-              </span>
+        <div class="page-card p-6">
+          <h3 class="font-black">{{ locale === 'ar' ? 'ساعات العمل' : 'Working hours' }}</h3>
+          <div class="mt-4 space-y-2 text-sm">
+            <div v-for="h in workingHours" :key="String(h.dayName)" class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+              <span class="font-bold">{{ h.dayName }} {{ h.startTime }} – {{ h.endTime }}</span>
+              <span :class="h.isOpen ? 'text-brand' : 'text-danger'">{{ h.isOpen ? t('common.yes') : t('common.no') }}</span>
             </div>
-            <p v-if="!workingHours.length" class="text-slate-500">لا توجد ساعات عمل مسجلة</p>
+            <p v-if="!workingHours.length" class="text-app-muted">{{ t('common.empty') }}</p>
           </div>
         </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-black text-slate-900">الصور والمستندات (حتى 3)</h3>
-          <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <button
-              v-for="(url, idx) in imageUrls"
-              :key="url"
-              type="button"
-              class="overflow-hidden rounded-xl border border-slate-200 ring-offset-2 hover:ring-2 hover:ring-blue-300"
-              @click="openLightbox(url)"
-            >
-              <img :src="url" :alt="`صورة ${idx + 1}`" class="h-32 w-full object-cover" />
+        <div class="page-card p-6">
+          <h3 class="font-black">{{ locale === 'ar' ? 'الصور' : 'Images' }}</h3>
+          <div class="mt-4 grid grid-cols-3 gap-3">
+            <button v-for="(url, idx) in imageUrls" :key="url" type="button" class="overflow-hidden rounded-xl border" @click="openLightbox(url)">
+              <img :src="url" :alt="String(idx)" class="h-28 w-full object-cover" />
             </button>
-            <p v-if="!imageUrls.length" class="col-span-full text-sm text-slate-500">لا توجد صور مرفوعة</p>
+            <p v-if="!imageUrls.length" class="col-span-3 text-sm text-app-muted">{{ t('common.empty') }}</p>
           </div>
         </div>
       </div>
 
-      <div class="grid gap-6 xl:grid-cols-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-black text-slate-900">الموقع</h3>
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <Info label="العنوان" :value="String(item.address ?? '—')" />
-            <Info label="المحافظة" :value="String(item.city ?? item.cityName ?? '—')" />
-            <Info label="Latitude" :value="coord(item.latitude)" />
-            <Info label="Longitude" :value="coord(item.longitude)" />
-          </div>
-          <a
-            v-if="hasCoords"
-            :href="mapUrl"
-            target="_blank"
-            class="mt-4 inline-flex rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
-          >
-            فتح الموقع على الخريطة
-          </a>
-        </div>
-
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-black text-slate-900">المراجعة والرفض</h3>
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <Info label="سبب الرفض" :value="String(item.rejectionReason ?? 'لا يوجد')" />
-            <Info label="تمت المراجعة بواسطة" :value="String(item.reviewedBy ?? 'لم تتم المراجعة')" />
-            <Info label="تاريخ المراجعة" :value="item.reviewedAt ? formatDate(item.reviewedAt as string) : '—'" />
-            <Info label="الحالة الحالية" :value="statusLabel(item.status)" />
-          </div>
-        </div>
+      <div class="page-card p-6">
+        <h3 class="font-black">{{ t('apps.review') }}</h3>
+        <dl class="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+          <div><dt class="text-app-muted">{{ locale === 'ar' ? 'سبب الرفض' : 'Rejection reason' }}</dt><dd class="font-bold">{{ item.rejectionReason ?? '—' }}</dd></div>
+          <div><dt class="text-app-muted">{{ locale === 'ar' ? 'المراجع' : 'Reviewed by' }}</dt><dd class="font-bold">{{ item.reviewedBy ?? '—' }}</dd></div>
+          <div><dt class="text-app-muted">{{ locale === 'ar' ? 'تاريخ المراجعة' : 'Reviewed at' }}</dt><dd class="font-bold">{{ item.reviewedAt ? formatDate(item.reviewedAt as string) : '—' }}</dd></div>
+        </dl>
       </div>
 
-      <div v-if="item.status === 'Pending'" class="flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <button type="button" class="rounded-xl bg-emerald-600 px-5 py-2.5 font-bold text-white" @click="approve">قبول الطلب</button>
-        <button type="button" class="rounded-xl bg-red-600 px-5 py-2.5 font-bold text-white" @click="rejectOpen = true">رفض الطلب</button>
+      <div v-if="showRestaurantPanel" class="page-card border-brand/20 p-6">
+        <h3 class="font-black">{{ t('apps.draftTitle') }}</h3>
+        <div v-if="draftLoading" class="py-8"><LoadingSpinner /></div>
+        <div v-else-if="!restaurantDraft" class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p class="font-bold">{{ t('apps.noDraft') }}</p>
+          <p class="mt-1">{{ t('apps.noDraftEn') }}</p>
+        </div>
+        <template v-else>
+          <dl class="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+            <div><dt class="text-app-muted">{{ locale === 'ar' ? 'عدد الطوابق المعلن' : 'Declared floors' }}</dt><dd class="font-bold">{{ restaurantDraft.declaredFloorCount ?? '—' }}</dd></div>
+            <div><dt class="text-app-muted">{{ locale === 'ar' ? 'معلومات الخدمة' : 'Service info' }}</dt><dd class="font-bold">{{ restaurantDraft.serviceInfo ?? '—' }}</dd></div>
+            <div><dt class="text-app-muted">{{ locale === 'ar' ? 'سياسة الإلغاء' : 'Cancellation' }}</dt><dd class="font-bold">{{ restaurantDraft.cancellationPolicyNotes ?? '—' }}</dd></div>
+          </dl>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <span v-for="c in cuisineLabels" :key="c" class="rounded-full bg-brand-light px-3 py-1 text-xs font-bold text-brand-dark">{{ c }}</span>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-app-muted">
+                <tr>
+                  <th class="px-3 py-2">{{ t('table.code') }}</th>
+                  <th class="px-3 py-2">{{ t('table.capacity') }}</th>
+                  <th class="px-3 py-2">{{ t('table.minGuests') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="!proposedTables.length"><td colspan="3" class="px-3 py-6 text-center text-app-muted">{{ t('common.empty') }}</td></tr>
+                <tr v-for="(tb, i) in proposedTables" :key="i" class="border-t">
+                  <td class="px-3 py-2 font-bold">{{ tb.code ?? '—' }}</td>
+                  <td class="px-3 py-2">{{ tb.capacity ?? '—' }}</td>
+                  <td class="px-3 py-2">{{ tb.minGuests ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+      </div>
+
+      <div v-if="isMedical" class="page-card p-6">
+        <p class="text-sm text-app-muted">{{ t('med.noRecords') }}</p>
+      </div>
+
+      <div v-if="item.status === 'Pending'" class="flex flex-wrap gap-3 page-card p-4">
+        <button type="button" class="btn-primary" :disabled="busy" @click="approveOpen = true">{{ t('apps.approve') }}</button>
+        <button type="button" class="btn-danger" :disabled="busy" @click="rejectOpen = true">{{ t('apps.reject') }}</button>
       </div>
     </template>
+    <EmptyState v-else :title="t('common.empty')" />
 
-    <p v-else class="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">لم يتم العثور على الطلب</p>
-
-    <ConfirmModal v-model="rejectOpen" title="رفض طلب الانضمام" confirm-text="رفض" confirm-color="danger" @confirm="reject">
-      <textarea v-model="rejectReason" rows="3" class="mt-2 w-full rounded-xl border p-3" placeholder="سبب الرفض (مطلوب)" />
+    <ConfirmModal v-model="approveOpen" :title="t('apps.approve')" :message="t('apps.approveConfirm')" :busy="busy" @confirm="approve" />
+    <ConfirmModal v-model="rejectOpen" :title="t('apps.rejectTitle')" confirm-color="danger" :busy="busy" @confirm="reject">
+      <textarea v-model="rejectReason" rows="3" class="input-field" :placeholder="t('apps.rejectReason')" />
     </ConfirmModal>
-
-    <ImageLightbox v-model="lightboxOpen" :src="lightboxSrc" alt="صورة طلب الانضمام" />
+    <ImageLightbox v-model="lightboxOpen" :src="lightboxSrc" alt="" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h, onMounted, ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { approveApplication, getApplicationDetail, rejectApplication } from '@/api'
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import { getAdminRestaurantApplicationDraft, getAdminRestaurantCuisines } from '@/api/domains'
+import PageHeader from '@/components/common/PageHeader.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import ImageLightbox from '@/components/common/ImageLightbox.vue'
+import DomainBadge from '@/components/common/DomainBadge.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import SkeletonRows from '@/components/common/SkeletonRows.vue'
+import ErrorBanner from '@/components/common/ErrorBanner.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import { isMedicalDomain, isRestaurantDomain, readDomainType } from '@/utils/domain'
 import { apiMessage } from '@/utils/error'
 import { formatDate, resolveMediaUrl } from '@/utils/format'
 import { statusClass, statusLabel } from '@/utils/admin'
 import { welcomeCreditsApproveMessage } from '@/utils/settings'
+import { useI18n } from '@/composables/useI18n'
 
-const Info = defineComponent({
-  props: { label: { type: String, required: true }, value: { type: String, required: true } },
-  setup(props) {
-    return () => h('div', { class: 'rounded-xl bg-slate-50 p-4' }, [
-      h('p', { class: 'text-xs font-bold text-slate-500' }, props.label),
-      h('p', { class: 'mt-1 font-bold text-slate-900' }, props.value),
-    ])
-  },
-})
-
+const { t, dir, locale } = useI18n()
 const route = useRoute()
-const router = useRouter()
 const toast = useToast()
 const loading = ref(true)
+const error = ref('')
 const item = ref<Record<string, unknown> | null>(null)
+const approveOpen = ref(false)
 const rejectOpen = ref(false)
 const rejectReason = ref('')
+const busy = ref(false)
 const lightboxOpen = ref(false)
 const lightboxSrc = ref('')
+const draftLoading = ref(false)
+const restaurantDraft = ref<Record<string, unknown> | null>(null)
+const draftChecked = ref(false)
+const cuisineNameById = ref<Record<string, string>>({})
 
-const subCategories = computed(() => {
-  const raw = item.value?.subCategories
-  if (!Array.isArray(raw)) return [] as string[]
-  return raw
-    .map((s) => {
-      if (typeof s === 'string') return s
-      const row = s as Record<string, unknown>
-      return String(row.nameAr ?? row.name ?? '')
-    })
-    .filter(Boolean)
+const title = computed(() => String(item.value?.businessName ?? item.value?.name ?? t('apps.title')))
+const domainType = computed(() => readDomainType(item.value))
+const isRestaurant = computed(() => isRestaurantDomain(domainType.value))
+const isMedical = computed(() => isMedicalDomain(domainType.value))
+const showRestaurantPanel = computed(() => isRestaurant.value || draftChecked.value)
+
+const proposedTables = computed(() => {
+  const raw = restaurantDraft.value?.proposedTables
+  return Array.isArray(raw) ? (raw as Record<string, unknown>[]) : []
 })
-const workingHours = computed(() => (Array.isArray(item.value?.workingHours) ? item.value.workingHours as Record<string, unknown>[] : []))
+const cuisineLabels = computed(() => {
+  const src = restaurantDraft.value
+  if (!src) return [] as string[]
+  const nested = src.cuisines
+  if (Array.isArray(nested)) {
+    return nested.map((c) => {
+      if (typeof c === 'string') return cuisineNameById.value[c] ?? c
+      const row = c as Record<string, unknown>
+      return String(row.nameAr ?? row.name ?? cuisineNameById.value[String(row.id)] ?? '')
+    }).filter(Boolean)
+  }
+  const ids = src.cuisineTypeIds
+  if (!Array.isArray(ids)) return []
+  return ids.map((id) => cuisineNameById.value[String(id)] ?? String(id))
+})
+const workingHours = computed(() => (Array.isArray(item.value?.workingHours) ? (item.value!.workingHours as Record<string, unknown>[]) : []))
 const imageUrls = computed(() => {
-  const raw = item.value?.imageUrls ?? item.value?.images ?? item.value?.documents
+  const raw = item.value?.imageUrls ?? item.value?.images
   if (!Array.isArray(raw)) return []
   return raw
     .map((x) => (typeof x === 'string' ? resolveMediaUrl(x) : resolveMediaUrl((x as Record<string, unknown>).url)))
     .filter(Boolean)
     .slice(0, 3)
 })
-const hasCoords = computed(() => item.value?.latitude != null && item.value?.longitude != null)
-const mapUrl = computed(() => `https://www.google.com/maps?q=${item.value?.latitude},${item.value?.longitude}`)
 
-function coord(v: unknown) {
-  const n = Number(v)
-  if (Number.isNaN(n)) return '—'
-  return n.toFixed(6)
+function isDraftPayload(data: unknown): data is Record<string, unknown> {
+  if (!data || typeof data !== 'object') return false
+  const d = data as Record<string, unknown>
+  return d.applicationId != null || d.declaredFloorCount != null || Array.isArray(d.proposedTables) || Array.isArray(d.cuisines)
+}
+
+async function loadRestaurantDraft(applicationId: string) {
+  draftLoading.value = true
+  try {
+    const [draftRes, cuisinesRes] = await Promise.all([
+      getAdminRestaurantApplicationDraft(applicationId),
+      getAdminRestaurantCuisines(),
+    ])
+    const draft = draftRes.data
+    restaurantDraft.value = isDraftPayload(draft) ? draft : null
+    draftChecked.value = true
+    const list = Array.isArray(cuisinesRes.data)
+      ? (cuisinesRes.data as Record<string, unknown>[])
+      : []
+    const map: Record<string, string> = {}
+    for (const c of list) map[String(c.id)] = String(c.nameAr ?? c.name ?? c.id)
+    cuisineNameById.value = map
+  } catch {
+    restaurantDraft.value = null
+    draftChecked.value = isRestaurant.value
+  } finally {
+    draftLoading.value = false
+  }
 }
 
 async function load() {
   loading.value = true
+  error.value = ''
   try {
     const res = await getApplicationDetail(String(route.params.id))
     item.value = res.data as Record<string, unknown>
+    const nested = item.value.restaurantDraft
+    if (isDraftPayload(nested)) restaurantDraft.value = nested
+    if (isRestaurantDomain(readDomainType(item.value)) || nested == null) {
+      await loadRestaurantDraft(String(route.params.id))
+    }
   } catch (e) {
-    toast.error(apiMessage(e, 'تعذر تحميل تفاصيل الطلب'))
+    error.value = apiMessage(e, t('common.error'))
   } finally {
     loading.value = false
   }
@@ -194,28 +251,34 @@ function openLightbox(url: string) {
 }
 
 async function approve() {
-  if (!confirm('هل تريد قبول طلب الانضمام؟')) return
+  busy.value = true
   try {
     await approveApplication(String(route.params.id))
-    toast.success(await welcomeCreditsApproveMessage('صاحب المحل'))
-    router.push('/applications')
+    toast.success(await welcomeCreditsApproveMessage(locale.value === 'ar' ? 'صاحب العمل' : 'business'))
+    approveOpen.value = false
+    await load()
   } catch (e) {
     toast.error(apiMessage(e))
+  } finally {
+    busy.value = false
   }
 }
 
 async function reject() {
   if (!rejectReason.value.trim()) {
-    toast.warning('يرجى كتابة سبب الرفض')
-    rejectOpen.value = true
+    toast.warning(t('apps.rejectReason'))
     return
   }
+  busy.value = true
   try {
-    await rejectApplication(String(route.params.id), rejectReason.value || 'لم يتم تحديد سبب')
-    toast.success('تم رفض الطلب')
-    router.push('/applications')
+    await rejectApplication(String(route.params.id), rejectReason.value.trim())
+    toast.success(t('apps.rejected'))
+    rejectOpen.value = false
+    await load()
   } catch (e) {
     toast.error(apiMessage(e))
+  } finally {
+    busy.value = false
   }
 }
 

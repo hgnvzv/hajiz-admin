@@ -1,30 +1,20 @@
 <template>
-  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-[#F8F8FC] px-4 py-3">
-    <p class="text-sm text-[#6B7280]">
-      عرض
-      <span class="font-bold text-[#1A1A2E]">{{ pageStart }}</span>
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-slate-50 px-4 py-3" :dir="dir">
+    <p class="text-sm text-app-muted">
+      {{ t('common.showing') }}
+      <span class="font-bold text-app-text">{{ pageStart }}</span>
       –
-      <span class="font-bold text-[#1A1A2E]">{{ pageEnd }}</span>
-      من
-      <span class="font-bold text-[#1A1A2E]">{{ total }}</span>
+      <span class="font-bold text-app-text">{{ pageEnd }}</span>
+      {{ t('common.of') }}
+      <span class="font-bold text-app-text">{{ total }}</span>
     </p>
     <div class="flex items-center gap-1">
-      <button
-        type="button"
-        class="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-primary-light disabled:opacity-40"
-        :disabled="page <= 1"
-        @click="emit('change', page - 1)"
-      >
-        السابق
+      <button type="button" class="btn-secondary text-xs" :disabled="page <= 1" @click="emit('change', page - 1)">
+        {{ t('common.prev') }}
       </button>
-      <span class="px-2 text-sm font-bold text-[#1A1A2E]">{{ page }} / {{ totalPages }}</span>
-      <button
-        type="button"
-        class="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold transition hover:bg-primary-light disabled:opacity-40"
-        :disabled="page >= totalPages"
-        @click="emit('change', page + 1)"
-      >
-        التالي
+      <span class="px-2 text-sm font-bold">{{ page }} / {{ totalPages }}</span>
+      <button type="button" class="btn-secondary text-xs" :disabled="page >= totalPages" @click="emit('change', page + 1)">
+        {{ t('common.next') }}
       </button>
     </div>
   </div>
@@ -32,6 +22,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 
 const props = defineProps<{
   total: number
@@ -39,16 +30,10 @@ const props = defineProps<{
   pageSize: number
 }>()
 
-const emit = defineEmits<{
-  change: [page: number]
-}>()
+const emit = defineEmits<{ change: [page: number] }>()
+const { t, dir } = useI18n()
 
 const totalPages = computed(() => Math.max(1, Math.ceil(props.total / props.pageSize) || 1))
-
-const pageStart = computed(() => {
-  if (props.total === 0) return 0
-  return (props.page - 1) * props.pageSize + 1
-})
-
+const pageStart = computed(() => (props.total === 0 ? 0 : (props.page - 1) * props.pageSize + 1))
 const pageEnd = computed(() => Math.min(props.page * props.pageSize, props.total))
 </script>

@@ -5,6 +5,19 @@ export interface PagedResult<T = Record<string, unknown>> {
   summary?: Record<string, unknown>
 }
 
+const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** ASP.NET `{id:guid}` routes 404 unless the path value is a UUID. */
+export function isGuid(value: unknown): boolean {
+  return typeof value === 'string' && GUID_RE.test(value.trim())
+}
+
+export function restaurantBusinessId(row: Record<string, unknown>): string | null {
+  const raw = row.businessId ?? row.BusinessId
+  const id = raw == null ? '' : String(raw).trim()
+  return isGuid(id) ? id : null
+}
+
 export function normalizePaged<T = Record<string, unknown>>(data: unknown): PagedResult<T> {
   if (Array.isArray(data)) return { items: data as T[], total: data.length }
   const d = (data ?? {}) as { items?: T[]; total?: number; totalCount?: number; totalPages?: number; summary?: Record<string, unknown> }
@@ -93,10 +106,10 @@ export function complaintTypeLabel(type: unknown) {
 export function userTypeLabel(type: unknown) {
   const map: Record<string, string> = {
     customer: 'زبون',
-    business: 'صاحب محل',
+    business: 'صاحب عمل',
     admin: 'مدير',
     Customer: 'زبون',
-    Business: 'صاحب محل',
+    Business: 'صاحب عمل',
     Admin: 'مدير',
     Craftsman: 'حرفي',
   }

@@ -29,7 +29,7 @@ const chartData = computed(() => ({
     {
       label: 'الإيرادات',
       data: props.revenue,
-      backgroundColor: 'rgba(108, 99, 255, 0.75)',
+      backgroundColor: 'rgba(46, 139, 87, 0.8)',
       borderRadius: 8,
     },
     {

@@ -31,12 +31,12 @@ const chartData = computed(() => ({
     {
       label: props.label ?? 'الحجوزات',
       data: props.values,
-      borderColor: '#6C63FF',
-      backgroundColor: 'rgba(108, 99, 255, 0.12)',
+      borderColor: '#2E8B57',
+      backgroundColor: 'rgba(46, 139, 87, 0.12)',
       fill: true,
       tension: 0.35,
       pointRadius: 4,
-      pointBackgroundColor: '#6C63FF',
+      pointBackgroundColor: '#2E8B57',
     },
   ],
 }))

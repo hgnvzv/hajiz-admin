@@ -1,81 +1,60 @@
 <template>
-  <header
-    class="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur"
-    dir="rtl"
-  >
-    <div class="flex items-center gap-2">
-      <button
-        type="button"
-        class="inline-flex rounded-xl border border-border p-2 lg:hidden"
-        aria-label="القائمة"
-        @click="ui.toggleSidebar()"
-      >
-        <Bars3Icon class="h-6 w-6 text-[#1A1A2E]" />
+  <header class="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border bg-white/95 px-4 py-3 backdrop-blur" :dir="dir">
+    <div class="flex min-w-0 items-center gap-2">
+      <button type="button" class="inline-flex rounded-xl border border-border p-2 lg:hidden" :aria-label="t('nav.overview')" @click="ui.toggleSidebar()">
+        <Bars3Icon class="h-6 w-6" />
       </button>
-      <div>
-        <h1 class="truncate text-lg font-black text-slate-900 lg:text-xl">{{ title }}</h1>
-        <p class="hidden text-xs text-slate-500 sm:block">{{ todayLabel }}</p>
+      <div class="min-w-0">
+        <h1 class="truncate text-lg font-black text-app-text lg:text-xl">{{ title }}</h1>
+        <p class="hidden text-xs text-app-muted sm:block">{{ todayLabel }}</p>
       </div>
     </div>
 
-    <div class="flex items-center gap-2 sm:gap-3">
+    <div class="flex items-center gap-2">
       <RouterLink
-        to="/applications?status=Pending"
-        class="hidden items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 sm:inline-flex"
         v-if="ui.pendingBusinessCount > 0"
+        to="/applications?status=Pending"
+        class="hidden items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 sm:inline-flex"
       >
-        ⏳
-        <span>{{ ui.pendingBusinessCount }} بانتظار</span>
+        {{ ui.pendingBusinessCount }} {{ t('header.pending') }}
       </RouterLink>
+
+      <button type="button" class="rounded-xl border border-border px-2.5 py-1.5 text-xs font-black" @click="toggleLocale">
+        {{ locale === 'ar' ? 'EN' : 'AR' }}
+      </button>
 
       <NotificationBell />
 
       <div class="hidden items-center gap-2 sm:flex">
-        <div
-          class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-black text-white"
-        >
+        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-black text-white">
           {{ initial }}
         </div>
-        <div class="min-w-0 text-right">
-          <p class="truncate text-sm font-bold text-slate-900">{{ auth.admin?.name ?? 'مدير' }}</p>
-          <p class="text-xs text-slate-500">{{ auth.admin?.role ?? 'مسؤول' }}</p>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-bold">{{ auth.admin?.name ?? t('app.admin') }}</p>
+          <p class="text-xs text-app-muted">{{ auth.admin?.role ?? 'Admin' }}</p>
         </div>
       </div>
-
-      <button
-        type="button"
-        class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-danger hover:bg-red-100 sm:text-sm"
-        @click="logout"
-      >
-        خروج
-      </button>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import { Bars3Icon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline'
+import { RouterLink } from 'vue-router'
+import { Bars3Icon } from '@heroicons/vue/24/outline'
 import NotificationBell from '@/components/common/NotificationBell.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { useI18n } from '@/composables/useI18n'
 
-defineProps<{
-  title: string
-}>()
+defineProps<{ title: string }>()
 
 const auth = useAuthStore()
 const ui = useUiStore()
-const router = useRouter()
+const { t, dir, locale, toggleLocale } = useI18n()
 
 const initial = computed(() => (auth.admin?.name?.[0] ?? 'ح').toUpperCase())
 const todayLabel = computed(() =>
-  new Intl.DateTimeFormat('ar-IQ', { dateStyle: 'full' }).format(new Date()),
+  new Intl.DateTimeFormat(locale.value === 'ar' ? 'ar-IQ' : 'en-GB', { dateStyle: 'full' }).format(new Date()),
 )
-
-function logout() {
-  auth.logout()
-  router.push('/login')
-}
 </script>

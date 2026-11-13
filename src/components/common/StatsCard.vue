@@ -1,57 +1,48 @@
 <template>
-  <div
-    class="rounded-2xl border border-border bg-surface p-5 shadow-sm transition hover:shadow-md"
-    dir="rtl"
+  <component
+    :is="to ? 'RouterLink' : 'div'"
+    :to="to"
+    class="page-card block p-5 transition hover:shadow-float"
   >
     <div class="flex items-start justify-between gap-3">
       <div>
-        <p class="text-sm font-medium text-[#6B7280]">{{ title }}</p>
-        <p class="mt-2 text-3xl font-black tabular-nums text-[#1A1A2E]">{{ displayValue }}</p>
-        <p v-if="trend != null" class="mt-1 text-xs font-semibold" :class="trend >= 0 ? 'text-success' : 'text-danger'">
-          {{ trend >= 0 ? '+' : '' }}{{ trend }}%
-        </p>
+        <p class="text-sm font-medium text-app-muted">{{ title }}</p>
+        <p class="mt-2 text-3xl font-black tabular-nums text-app-text">{{ display }}</p>
       </div>
-      <div
-        class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white"
-        :class="iconWrapClass"
-      >
-        <slot name="icon">
-          <span class="text-2xl">{{ fallbackEmoji }}</span>
-        </slot>
+      <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" :class="wrap">
+        <slot name="icon" />
       </div>
     </div>
-  </div>
+  </component>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 
 const props = withDefaults(
   defineProps<{
     title: string
-    value: string | number
+    value: string | number | null
     color?: 'primary' | 'success' | 'warning' | 'danger'
-    trend?: number | null
+    to?: string
+    failed?: boolean
   }>(),
-  { color: 'primary', trend: null },
+  { color: 'primary', failed: false },
 )
 
-const displayValue = computed(() =>
-  typeof props.value === 'number' ? new Intl.NumberFormat('ar-IQ').format(props.value) : props.value,
-)
-
-const iconWrapClass = computed(() => {
-  const m = {
-    primary: 'bg-gradient-to-br from-primary to-primary-dark',
-    success: 'bg-success',
-    warning: 'bg-warning',
-    danger: 'bg-danger',
-  }
-  return m[props.color]
+const display = computed(() => {
+  if (props.failed || props.value == null) return '—'
+  return typeof props.value === 'number' ? new Intl.NumberFormat().format(props.value) : props.value
 })
 
-const fallbackEmoji = computed(() => {
-  const m = { primary: '📊', success: '✓', warning: '⏳', danger: '!' }
+const wrap = computed(() => {
+  const m = {
+    primary: 'bg-brand-light text-brand',
+    success: 'bg-brand-light text-brand',
+    warning: 'bg-amber-50 text-amber-700',
+    danger: 'bg-red-50 text-red-600',
+  }
   return m[props.color]
 })
 </script>

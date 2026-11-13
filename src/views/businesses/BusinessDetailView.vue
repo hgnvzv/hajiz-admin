@@ -11,6 +11,19 @@
           <div>
             <h1 class="text-2xl font-black text-[#1A1A2E]">{{ biz.name }}</h1>
             <p class="mt-1 text-[#6B7280]">{{ biz.categoryName ?? biz.category }} • {{ biz.phone }}</p>
+            <div class="mt-2"><DomainBadge :domain-type="biz.domainType ?? biz.businessDomainType" /></div>
+            <div v-if="isRestaurantDomain(readDomainType(biz))" class="mt-3 flex flex-wrap gap-2">
+              <RouterLink :to="`/restaurants/${biz.id}/floors`" class="rounded-xl bg-brand px-3 py-1.5 text-xs font-bold text-white">المخطط والطاولات</RouterLink>
+              <RouterLink :to="`/restaurants/${String(biz.id)}`" class="rounded-xl bg-brand-light px-3 py-1.5 text-xs font-bold text-brand-dark">جاهزية المطعم</RouterLink>
+            </div>
+            <div v-if="isMedicalDomain(readDomainType(biz))" class="mt-3">
+              <RouterLink
+                :to="readDomainType(biz) === 1 ? `/medical/clinics/${biz.id}` : `/medical/doctors`"
+                class="rounded-xl bg-brand-light px-3 py-1.5 text-xs font-bold text-brand-dark"
+              >
+                الملف الطبي العام
+              </RouterLink>
+            </div>
             <p v-if="biz.ownerName" class="mt-1 text-sm text-[#6B7280]">المالك: {{ biz.ownerName }}</p>
             <p class="mt-2 text-sm">{{ biz.address }}</p>
             <p class="mt-1 text-xs text-[#6B7280]">تاريخ التسجيل: {{ formatDateShort(biz.createdAt as string) }}</p>
@@ -105,6 +118,15 @@
             <dd class="font-bold">{{ biz.isOpen ? 'نعم' : 'لا' }}</dd>
           </div>
         </dl>
+
+        <div v-if="showMedicalLinks" class="mt-4 flex flex-wrap gap-2">
+          <RouterLink :to="`/medical/clinics/${biz.id}`" class="rounded-xl bg-teal-600 px-4 py-2 text-sm font-bold text-white">ملف العيادة</RouterLink>
+        </div>
+        <div v-if="showRestaurantLinks" class="mt-4 flex flex-wrap gap-2">
+          <RouterLink :to="`/restaurants/${biz.id}`" class="rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white">ملف المطعم</RouterLink>
+          <RouterLink :to="`/restaurants/${biz.id}/menu`" class="rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900">القائمة</RouterLink>
+          <RouterLink :to="`/restaurants/${biz.id}/floors`" class="rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900">الطوابق</RouterLink>
+        </div>
 
         <section class="mt-6 rounded-xl border border-border bg-[#F8F8FC] p-5">
           <h4 class="mb-4 font-black text-[#1A1A2E]">إعدادات الحجز — اختيار المناسبة</h4>
@@ -304,6 +326,8 @@ import {
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import DomainBadge from '@/components/common/DomainBadge.vue'
+import { isMedicalDomain, isRestaurantDomain, readDomainType } from '@/utils/domain'
 import { formatDateShort, formatMoney } from '@/utils/format'
 import { apiMessage } from '@/utils/error'
 
@@ -402,6 +426,8 @@ const recentBookings = computed(() => {
 const showSuspend = ref(false)
 const suspendReason = ref('')
 const showDelete = ref(false)
+const showMedicalLinks = computed(() => isMedicalDomain(readDomainType(biz.value ?? undefined)))
+const showRestaurantLinks = computed(() => isRestaurantDomain(readDomainType(biz.value ?? undefined)))
 const savingOccasion = ref(false)
 const occasionOverride = ref<'inherit' | 'enabled' | 'disabled'>('inherit')
 

@@ -1,154 +1,73 @@
 <template>
-  <div class="space-y-6" dir="rtl">
-    <div class="grid gap-3 md:grid-cols-3">
-      <RouterLink
-        to="/applications?status=Pending"
-        class="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm transition hover:bg-amber-100"
-      >
-        <span class="font-bold">طلبات انضمام معلقة: {{ pendingApplications }}</span>
-        <span class="text-xl">←</span>
-      </RouterLink>
-      <RouterLink
-        to="/craftsmen?status=Pending"
-        class="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm transition hover:bg-amber-100"
-      >
-        <span class="font-bold">طلبات حرفيين معلقة: {{ pendingCraftsmen }}</span>
-        <span class="text-xl">←</span>
-      </RouterLink>
-      <RouterLink
-        to="/complaints?status=Open"
-        class="flex items-center justify-between rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900 shadow-sm transition hover:bg-blue-100"
-      >
-        <span class="font-bold">شكاوى مفتوحة: {{ openComplaints }}</span>
-        <span class="text-xl">←</span>
-      </RouterLink>
-    </div>
+  <div class="space-y-6" :dir="dir">
+    <PageHeader :title="t('dash.title')" :description="t('dash.desc')">
+      <template #actions>
+        <RouterLink to="/applications?status=Pending" class="btn-primary">{{ t('dash.quickApps') }}</RouterLink>
+        <RouterLink to="/restaurants" class="btn-secondary">{{ t('dash.quickRestaurants') }}</RouterLink>
+        <RouterLink to="/medical/clinics" class="btn-secondary">{{ t('dash.quickClinics') }}</RouterLink>
+      </template>
+    </PageHeader>
+
+    <ErrorBanner v-if="error" :message="error" :retry="load" :retry-label="t('common.retry')" />
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatsCard title="إجمالي المحلات" :value="data?.totalBusinesses ?? 0" color="primary">
-        <template #icon><BuildingStorefrontIcon class="h-8 w-8 text-white" /></template>
-      </StatsCard>
-      <StatsCard title="طلبات انضمام معلقة" :value="pendingApplications" color="warning">
-        <template #icon><ClockIcon class="h-8 w-8 text-white" /></template>
-      </StatsCard>
-      <StatsCard title="إجمالي الزبائن" :value="data?.totalCustomers ?? 0" color="success">
-        <template #icon><UsersIcon class="h-8 w-8 text-white" /></template>
-      </StatsCard>
-      <StatsCard title="إجمالي الحرفيين" :value="totalCraftsmen" color="primary">
-        <template #icon><span class="text-3xl">🔧</span></template>
-      </StatsCard>
-      <StatsCard title="حجوزات اليوم" :value="data?.todayBookings ?? 0" color="primary">
-        <template #icon><CalendarDaysIcon class="h-8 w-8 text-white" /></template>
-      </StatsCard>
-    </div>
-
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <p class="text-sm font-medium text-[#6B7280]">إجمالي الحجوزات</p>
-        <p class="mt-2 text-2xl font-black text-primary">{{ formatMoney(data?.totalBookings ?? data?.monthRevenue) }}</p>
-      </div>
-      <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <p class="text-sm font-medium text-[#6B7280]">إجمالي العمولات</p>
-        <p class="mt-2 text-2xl font-black text-success">{{ formatMoney(data?.totalCommissions ?? data?.monthCommission) }}</p>
-      </div>
-      <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <p class="text-sm font-medium text-[#6B7280]">عمولات معلقة</p>
-        <p class="mt-2 text-2xl font-black text-[#1A1A2E]">{{ formatMoney(data?.pendingCommissions ?? data?.totalRevenue) }}</p>
-      </div>
+      <StatsCard :title="t('dash.pendingApps')" :value="pendingApplications" :failed="failed.apps" color="warning" to="/applications?status=Pending" />
+      <StatsCard :title="t('dash.businesses')" :value="data?.totalBusinesses ?? null" :failed="failed.stats" to="/businesses" />
+      <StatsCard :title="t('dash.customers')" :value="data?.totalCustomers ?? null" :failed="failed.stats" to="/customers" />
+      <StatsCard :title="t('dash.todayBookings')" :value="data?.todayBookings ?? null" :failed="failed.stats" to="/bookings" />
+      <StatsCard :title="t('dash.restaurants')" :value="restaurantCount" :failed="failed.restaurants" to="/restaurants" />
+      <StatsCard :title="t('dash.bookable')" :value="bookableCount" :failed="failed.restaurants" to="/restaurants" />
+      <StatsCard :title="t('dash.clinics')" :value="clinicCount" :failed="failed.clinics" to="/medical/clinics" />
+      <StatsCard :title="t('dash.doctors')" :value="doctorCount" :failed="failed.doctors" to="/medical/doctors" />
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h2 class="mb-4 text-lg font-black text-[#1A1A2E]">الحجوزات آخر 30 يوم</h2>
+      <div class="page-card p-5">
+        <h2 class="mb-4 text-lg font-black">{{ t('dash.bookingsChart') }}</h2>
         <div class="h-72">
-          <LineChart
-            v-if="!loading && bookingLabels.length"
-            :labels="bookingLabels"
-            :values="bookingValues"
-            label="عدد الحجوزات"
-          />
-          <div v-else-if="loading" class="flex h-72 items-center justify-center">
-            <LoadingSpinner />
-          </div>
-          <p v-else class="py-12 text-center text-[#6B7280]">لا توجد بيانات كافية للرسم</p>
+          <LineChart v-if="!loading && bookingLabels.length" :labels="bookingLabels" :values="bookingValues" :label="t('dash.todayBookings')" />
+          <div v-else-if="loading" class="flex h-72 items-center justify-center"><LoadingSpinner /></div>
+          <p v-else class="py-12 text-center text-app-muted">{{ t('dash.noChart') }}</p>
         </div>
       </div>
-      <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-        <h2 class="mb-4 text-lg font-black text-[#1A1A2E]">الإيرادات الشهرية</h2>
+      <div class="page-card p-5">
+        <h2 class="mb-4 text-lg font-black">{{ t('dash.revenueChart') }}</h2>
         <div class="h-72">
-          <BarChart
-            v-if="!loading && revenueLabels.length"
-            :labels="revenueLabels"
-            :revenue="revenueBars"
-            :commission="commissionBars"
-          />
-          <div v-else-if="loading" class="flex h-72 items-center justify-center">
-            <LoadingSpinner />
-          </div>
-          <p v-else class="py-12 text-center text-[#6B7280]">لا توجد بيانات كافية للرسم</p>
+          <BarChart v-if="!loading && revenueLabels.length" :labels="revenueLabels" :revenue="revenueBars" :commission="commissionBars" />
+          <div v-else-if="loading" class="flex h-72 items-center justify-center"><LoadingSpinner /></div>
+          <p v-else class="py-12 text-center text-app-muted">{{ t('dash.noChart') }}</p>
         </div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      <div class="rounded-2xl border border-border bg-surface shadow-sm">
-        <div class="border-b border-border px-5 py-4">
-          <h2 class="text-lg font-black text-[#1A1A2E]">آخر الحجوزات</h2>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[320px] text-right text-sm">
-            <thead class="bg-primary text-white">
-              <tr>
-                <th class="px-4 py-3">المحل</th>
-                <th class="px-4 py-3">الزبون</th>
-                <th class="px-4 py-3">الحالة</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <tr v-if="loading">
-                <td colspan="3" class="py-10"><LoadingSpinner inline /></td>
-              </tr>
-              <tr v-else-if="!recent.length">
-                <td colspan="3" class="px-4 py-10 text-center text-[#6B7280]">لا توجد حجوزات حديثة</td>
-              </tr>
-              <tr v-for="b in recent" v-else :key="b.id" class="hover:bg-primary-light/30">
-                <td class="px-4 py-3 font-semibold">{{ b.businessName ?? '—' }}</td>
-                <td class="px-4 py-3">{{ b.customerName ?? '—' }}</td>
-                <td class="px-4 py-3">
-                  <StatusBadge :status="String(b.status ?? 'pending')" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="page-card overflow-hidden">
+        <div class="border-b border-border px-5 py-4 font-black">{{ t('dash.recentApps') }}</div>
+        <ul v-if="recentApps.length" class="divide-y divide-border">
+          <li v-for="a in recentApps" :key="String(a.id)">
+            <RouterLink :to="`/applications/${a.id}`" class="flex items-center justify-between px-5 py-3 hover:bg-slate-50">
+              <div>
+                <p class="font-bold text-app-text">{{ a.businessName ?? '—' }}</p>
+                <p class="text-xs text-app-muted">{{ a.ownerName }} · {{ a.phone }}</p>
+              </div>
+              <span class="rounded-full px-2 py-0.5 text-xs font-bold" :class="statusClass(a.status)">{{ statusLabel(a.status) }}</span>
+            </RouterLink>
+          </li>
+        </ul>
+        <p v-else class="px-5 py-10 text-center text-sm text-app-muted">{{ t('common.empty') }}</p>
       </div>
-
-      <div class="rounded-2xl border border-border bg-surface shadow-sm">
-        <div class="border-b border-border px-5 py-4">
-          <h2 class="text-lg font-black text-[#1A1A2E]">أفضل المحلات</h2>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[320px] text-right text-sm">
-            <thead class="bg-primary text-white">
-              <tr>
-                <th class="px-4 py-3">المحل</th>
-                <th class="px-4 py-3">الإيرادات</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <tr v-if="loading">
-                <td colspan="2" class="py-10"><LoadingSpinner inline /></td>
-              </tr>
-              <tr v-else-if="!top.length">
-                <td colspan="2" class="px-4 py-10 text-center text-[#6B7280]">لا توجد بيانات</td>
-              </tr>
-              <tr v-for="t in top" v-else :key="t.businessId ?? t.id" class="hover:bg-primary-light/30">
-                <td class="px-4 py-3 font-semibold">{{ t.businessName ?? t.name ?? '—' }}</td>
-                <td class="px-4 py-3 font-bold text-primary">{{ formatMoney(t.totalRevenue ?? t.revenue) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="page-card overflow-hidden">
+        <div class="border-b border-border px-5 py-4 font-black">{{ t('dash.recentBookings') }}</div>
+        <ul v-if="recent.length" class="divide-y divide-border">
+          <li v-for="b in recent" :key="String(b.id)" class="flex items-center justify-between px-5 py-3">
+            <div>
+              <p class="font-bold">{{ b.businessName ?? '—' }}</p>
+              <p class="text-xs text-app-muted">{{ b.customerName ?? '—' }}</p>
+            </div>
+            <StatusBadge :status="String(b.status ?? '')" />
+          </li>
+        </ul>
+        <p v-else class="px-5 py-10 text-center text-sm text-app-muted">{{ t('common.empty') }}</p>
       </div>
     </div>
   </div>
@@ -157,128 +76,110 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useToast } from 'vue-toastification'
-import {
-  BuildingStorefrontIcon,
-  UsersIcon,
-  CalendarDaysIcon,
-  ClockIcon,
-} from '@heroicons/vue/24/solid'
-import { getApplications, getComplaints, getCraftsmen, getDashboard } from '@/api'
+import { getApplications, getDashboard } from '@/api'
+import { getPublicMedicalClinics, getPublicMedicalDoctors, getPublicRestaurants } from '@/api/domains'
+import PageHeader from '@/components/common/PageHeader.vue'
 import StatsCard from '@/components/common/StatsCard.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ErrorBanner from '@/components/common/ErrorBanner.vue'
 import LineChart from '@/components/charts/LineChart.vue'
 import BarChart from '@/components/charts/BarChart.vue'
-import { formatMoney } from '@/utils/format'
 import { apiMessage } from '@/utils/error'
+import { statusClass, statusLabel, normalizePaged } from '@/utils/admin'
+import { useI18n } from '@/composables/useI18n'
 
-const toast = useToast()
+const { t, dir } = useI18n()
 
 interface DashboardPayload {
-  pendingBusinesses?: number
   pendingApplications?: number
+  pendingBusinesses?: number
   totalBusinesses?: number
   totalCustomers?: number
-  totalBookings?: number
-  totalCommissions?: number
-  pendingCommissions?: number
   todayBookings?: number
-  monthRevenue?: number
-  monthCommission?: number
-  totalRevenue?: number
   recentBookings?: unknown[]
-  topBusinesses?: unknown[]
   bookingsByDay?: { date?: string; count?: number }[]
   revenueByMonth?: { month?: string; revenue?: number; commission?: number }[]
 }
 
 const loading = ref(true)
+const error = ref('')
 const data = ref<DashboardPayload | null>(null)
-const pendingApplications = ref(0)
-const pendingCraftsmen = ref(0)
-const openComplaints = ref(0)
-const totalCraftsmen = ref(0)
+const pendingApplications = ref<number | null>(null)
+const clinicCount = ref<number | null>(null)
+const doctorCount = ref<number | null>(null)
+const restaurantCount = ref<number | null>(null)
+const bookableCount = ref<number | null>(null)
+const recentApps = ref<Record<string, unknown>[]>([])
+const failed = ref({ stats: false, apps: false, clinics: false, doctors: false, restaurants: false })
 
-interface RecentBookingRow {
-  id?: string
-  businessName?: string
-  customerName?: string
-  status?: string
-}
-
-interface TopBizRow {
-  businessId?: string
-  id?: string
-  businessName?: string
-  name?: string
-  totalRevenue?: number
-  revenue?: number
-}
-
-const recent = computed((): RecentBookingRow[] => {
+const recent = computed(() => {
   const r = data.value?.recentBookings
-  return Array.isArray(r) ? (r as RecentBookingRow[]) : []
+  return Array.isArray(r) ? (r as { id?: string; businessName?: string; customerName?: string; status?: string }[]) : []
 })
+const bookingLabels = computed(() => (data.value?.bookingsByDay ?? []).map((x) => (x.date ?? '').slice(0, 10)))
+const bookingValues = computed(() => (data.value?.bookingsByDay ?? []).map((x) => Number(x.count ?? 0)))
+const revenueLabels = computed(() => (data.value?.revenueByMonth ?? []).map((x) => String(x.month ?? '')))
+const revenueBars = computed(() => (data.value?.revenueByMonth ?? []).map((x) => Number(x.revenue ?? 0)))
+const commissionBars = computed(() => (data.value?.revenueByMonth ?? []).map((x) => Number(x.commission ?? 0)))
 
-const top = computed((): TopBizRow[] => {
-  const r = data.value?.topBusinesses
-  return Array.isArray(r) ? (r as TopBizRow[]) : []
-})
-
-const bookingLabels = computed(() => {
-  const raw = data.value?.bookingsByDay
-  if (!Array.isArray(raw)) return [] as string[]
-  return raw.map((x: { date?: string }) => (x.date ?? '').slice(0, 10))
-})
-
-const bookingValues = computed(() => {
-  const raw = data.value?.bookingsByDay
-  if (!Array.isArray(raw)) return [] as number[]
-  return raw.map((x: { count?: number }) => Number(x.count ?? 0))
-})
-
-const revenueLabels = computed(() => {
-  const raw = data.value?.revenueByMonth
-  if (!Array.isArray(raw)) return [] as string[]
-  return raw.map((x: { month?: string }) => String(x.month ?? ''))
-})
-
-const revenueBars = computed(() => {
-  const raw = data.value?.revenueByMonth
-  if (!Array.isArray(raw)) return [] as number[]
-  return raw.map((x: { revenue?: number }) => Number(x.revenue ?? 0))
-})
-
-const commissionBars = computed(() => {
-  const raw = data.value?.revenueByMonth
-  if (!Array.isArray(raw)) return [] as number[]
-  return raw.map((x: { commission?: number }) => Number(x.commission ?? 0))
-})
-
-onMounted(async () => {
+async function load() {
   loading.value = true
-  try {
-    const [statsRes, appsRes, craftsmenRes, complaintsRes, allCraftsmenRes] = await Promise.all([
-      getDashboard(),
-      getApplications({ status: 'Pending', page: 1, pageSize: 1 }),
-      getCraftsmen({ status: 'Pending', page: 1, pageSize: 1 }),
-      getComplaints({ status: 'Open', page: 1, pageSize: 1 }),
-      getCraftsmen({ page: 1, pageSize: 1 }),
-    ])
-    data.value = statsRes.data as DashboardPayload
-    const apps = appsRes.data as { total?: number; totalCount?: number }
-    const craftsmen = craftsmenRes.data as { total?: number; totalCount?: number }
-    const complaints = complaintsRes.data as { total?: number; totalCount?: number }
-    const allCraftsmen = allCraftsmenRes.data as { total?: number; totalCount?: number }
-    pendingApplications.value = Number(apps.total ?? apps.totalCount ?? data.value.pendingApplications ?? data.value.pendingBusinesses ?? 0)
-    pendingCraftsmen.value = Number(craftsmen.total ?? craftsmen.totalCount ?? 0)
-    openComplaints.value = Number(complaints.total ?? complaints.totalCount ?? 0)
-    totalCraftsmen.value = Number(allCraftsmen.total ?? allCraftsmen.totalCount ?? 0)
-  } catch (e) {
-    toast.error(apiMessage(e, 'تعذر تحميل لوحة التحكم'))
-  } finally {
-    loading.value = false
-  }
-})
+  error.value = ''
+  failed.value = { stats: false, apps: false, clinics: false, doctors: false, restaurants: false }
+  const tasks = [
+    getDashboard()
+      .then((r) => {
+        data.value = r.data as DashboardPayload
+      })
+      .catch(() => {
+        failed.value.stats = true
+      }),
+    getApplications({ status: 'Pending', page: 1, pageSize: 6 })
+      .then((r) => {
+        const d = normalizePaged(r.data)
+        pendingApplications.value = d.total
+        recentApps.value = d.items
+      })
+      .catch(() => {
+        failed.value.apps = true
+        pendingApplications.value = null
+      }),
+    getPublicMedicalClinics({ page: 1, pageSize: 1 })
+      .then((r) => {
+        clinicCount.value = normalizePaged(r.data).total
+      })
+      .catch(() => {
+        failed.value.clinics = true
+        clinicCount.value = null
+      }),
+    getPublicMedicalDoctors({ independentOnly: true, page: 1, pageSize: 1 })
+      .then((r) => {
+        doctorCount.value = normalizePaged(r.data).total
+      })
+      .catch(() => {
+        failed.value.doctors = true
+        doctorCount.value = null
+      }),
+    getPublicRestaurants({ page: 1, pageSize: 50 })
+      .then((r) => {
+        const d = normalizePaged(r.data)
+        restaurantCount.value = d.total
+        bookableCount.value =
+          d.total <= d.items.length
+            ? d.items.filter((x) => x.isPubliclyBookable === true).length
+            : null
+      })
+      .catch(() => {
+        failed.value.restaurants = true
+        restaurantCount.value = null
+        bookableCount.value = null
+      }),
+  ]
+  await Promise.all(tasks)
+  if (Object.values(failed.value).every(Boolean)) error.value = t('dash.loadFailed')
+  loading.value = false
+}
+
+onMounted(load)
 </script>

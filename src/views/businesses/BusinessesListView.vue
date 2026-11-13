@@ -16,6 +16,20 @@
           <label class="mb-1 block text-xs font-bold text-[#6B7280]">المحافظة</label>
           <input v-model="city" class="w-full rounded-xl border border-border px-3 py-2.5" placeholder="Baghdad" />
         </div>
+        <div class="w-full sm:w-48">
+          <label class="mb-1 block text-xs font-bold text-[#6B7280]">المجال</label>
+          <select v-model="domainFilter" class="w-full rounded-xl border border-border px-3 py-2.5" @change="applyFilters">
+            <option v-for="f in domainFilters" :key="f.value" :value="f.value">{{ f.label }}</option>
+          </select>
+        </div>
+        <div class="w-full sm:w-40">
+          <label class="mb-1 block text-xs font-bold text-[#6B7280]">الحالة</label>
+          <select v-model="activeFilter" class="w-full rounded-xl border border-border px-3 py-2.5" @change="applyFilters">
+            <option value="">الكل</option>
+            <option value="true">نشط</option>
+            <option value="false">متوقف</option>
+          </select>
+        </div>
         <button
           type="button"
           class="rounded-xl bg-primary px-6 py-2.5 font-bold text-white hover:bg-primary-dark"
@@ -58,6 +72,9 @@
         <span v-else class="text-xs text-slate-400">لا توجد</span>
       </template>
       <template #cell-category="{ row }">{{ row.category ?? '—' }}</template>
+      <template #cell-domainType="{ row }">
+        <DomainBadge :domain-type="row.domainType ?? row.businessDomainType" />
+      </template>
       <template #cell-isApproved="{ row }">
         <span
           class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold"
@@ -127,13 +144,16 @@ import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import { formatDateShort } from '@/utils/format'
 import { apiMessage } from '@/utils/error'
+import DomainBadge from '@/components/common/DomainBadge.vue'
+import { LAUNCH_DOMAIN_FILTERS, readDomainType } from '@/utils/domain'
 
 const toast = useToast()
 const route = useRoute()
 
 const columns: ColumnDef[] = [
   { key: 'primaryImage', label: 'الصورة' },
-  { key: 'name', label: 'المحل' },
+  { key: 'name', label: 'النشاط' },
+  { key: 'domainType', label: 'المجال' },
   { key: 'category', label: 'التصنيف' },
   { key: 'city', label: 'المحافظة' },
   { key: 'phone', label: 'الهاتف' },
@@ -152,6 +172,9 @@ const pageSize = 20
 const search = ref('')
 const status = ref('')
 const city = ref('')
+const domainFilter = ref('')
+const activeFilter = ref('')
+const domainFilters = LAUNCH_DOMAIN_FILTERS
 
 const showDelete = ref(false)
 const deleteRow = ref<Record<string, unknown> | null>(null)
@@ -168,12 +191,17 @@ async function load() {
     const res = await getBusinesses({
       search: search.value || undefined,
       city: city.value || undefined,
+      isActive: activeFilter.value === '' ? undefined : activeFilter.value === 'true',
       page: page.value,
       pageSize,
     })
     const d = res.data as { items?: Record<string, unknown>[]; total?: number }
-    rows.value = d.items ?? []
-    total.value = d.total ?? 0
+    const items = d.items ?? []
+    const wanted = domainFilter.value === '' ? null : Number(domainFilter.value)
+    rows.value = wanted == null || Number.isNaN(wanted)
+      ? items
+      : items.filter((row) => readDomainType(row) === wanted)
+    total.value = wanted == null || Number.isNaN(wanted) ? (d.total ?? 0) : rows.value.length
   } catch (e) {
     toast.error(apiMessage(e, 'تعذر تحميل المحلات'))
   } finally {

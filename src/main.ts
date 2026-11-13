@@ -10,8 +10,9 @@ import './assets/main.css'
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)
+const startRtl = (localStorage.getItem('hajiz_admin_locale') || 'ar') === 'ar'
 app.use(Toast, {
-  rtl: true,
+  rtl: startRtl,
   position: 'top-center',
   timeout: 3800,
   maxToasts: 5,

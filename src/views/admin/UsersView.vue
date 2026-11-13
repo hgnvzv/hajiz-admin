@@ -10,7 +10,7 @@
           <label class="mb-1 block text-xs font-bold text-slate-500">نوع المستخدم</label>
           <select v-model="userType" class="w-full rounded-xl border border-slate-200 px-3 py-2.5" @change="apply">
             <option value="customer">الزبائن</option>
-            <option value="business">أصحاب المحلات</option>
+            <option value="business">أصحاب عمل</option>
             <option value="admin">المدراء</option>
           </select>
         </div>
@@ -75,7 +75,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { createAdminUser, deleteUser, getUsers, updateUserStatus } from '@/api'
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
@@ -84,6 +85,7 @@ import { formatDateShort } from '@/utils/format'
 import { normalizePaged, userTypeLabel } from '@/utils/admin'
 
 const toast = useToast()
+const route = useRoute()
 const columns: ColumnDef[] = [
   { key: 'fullName', label: 'المستخدم' },
   { key: 'phone', label: 'الهاتف' },
@@ -97,7 +99,7 @@ const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = 30
-const userType = ref('customer')
+const userType = ref(typeof route.query.type === 'string' ? route.query.type : 'customer')
 const search = ref('')
 const adminOpen = ref(false)
 const adminForm = ref({ fullName: '', phone: '', password: '' })
@@ -163,6 +165,15 @@ async function createAdmin() {
     toast.error(apiMessage(e))
   }
 }
+
+watch(
+  () => route.query.type,
+  (v) => {
+    userType.value = typeof v === 'string' ? v : 'customer'
+    page.value = 1
+    load()
+  },
+)
 
 onMounted(load)
 </script>

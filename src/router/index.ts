@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useLocaleStore } from '@/stores/locale'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import PublicLayout from '@/layouts/PublicLayout.vue'
@@ -233,17 +234,113 @@ const router = createRouter({
           meta: { title: 'التقارير' },
           component: () => import('@/views/reports/ReportsView.vue'),
         },
+        {
+          path: 'geography',
+          name: 'geography',
+          meta: { title: 'المحافظات والمناطق' },
+          component: () => import('@/views/admin/GeographyView.vue'),
+        },
+        {
+          path: 'medical/specialties',
+          name: 'medical-specialties',
+          meta: { title: 'التخصصات الطبية' },
+          component: () => import('@/views/medical/MedicalSpecialtiesView.vue'),
+        },
+        {
+          path: 'medical/clinics',
+          name: 'medical-clinics',
+          meta: { title: 'العيادات' },
+          component: () => import('@/views/medical/MedicalClinicsView.vue'),
+        },
+        {
+          path: 'medical/clinics/:id',
+          name: 'medical-clinic-detail',
+          meta: { title: 'تفاصيل العيادة' },
+          component: () => import('@/views/medical/MedicalClinicDetailView.vue'),
+        },
+        {
+          path: 'medical/doctors',
+          name: 'medical-doctors',
+          meta: { title: 'الأطباء المستقلون' },
+          component: () => import('@/views/medical/MedicalDoctorsView.vue'),
+        },
+        {
+          path: 'medical/doctors/:id',
+          name: 'medical-doctor-detail',
+          meta: { title: 'تفاصيل الطبيب' },
+          component: () => import('@/views/medical/MedicalDoctorDetailView.vue'),
+        },
+        {
+          path: 'medical/appointments',
+          name: 'medical-appointments',
+          meta: { title: 'المواعيد الطبية' },
+          component: () => import('@/views/medical/MedicalAppointmentsView.vue'),
+        },
+        {
+          path: 'restaurants',
+          name: 'restaurants',
+          meta: { title: 'المطاعم' },
+          component: () => import('@/views/restaurant/RestaurantsView.vue'),
+        },
+        {
+          path: 'restaurants/:id',
+          name: 'restaurant-detail',
+          meta: { title: 'تفاصيل المطعم' },
+          component: () => import('@/views/restaurant/RestaurantDetailView.vue'),
+        },
+        {
+          path: 'restaurants/:id/menu',
+          name: 'restaurant-menu',
+          meta: { title: 'قائمة المطعم' },
+          component: () => import('@/views/restaurant/RestaurantMenuView.vue'),
+        },
+        {
+          path: 'restaurant/menus',
+          name: 'restaurant-menus',
+          meta: { title: 'قوائم المطاعم' },
+          component: () => import('@/views/restaurant/RestaurantMenuView.vue'),
+        },
+        {
+          path: 'restaurants/:id/floors',
+          name: 'restaurant-floors',
+          meta: { title: 'الطوابق والطاولات' },
+          component: () => import('@/views/restaurant/RestaurantFloorsView.vue'),
+        },
+        {
+          path: 'restaurant/floors',
+          name: 'restaurant-floors-index',
+          meta: { title: 'الطوابق والطاولات' },
+          component: () => import('@/views/restaurant/RestaurantFloorsView.vue'),
+        },
+        {
+          path: 'restaurant/cuisines',
+          name: 'restaurant-cuisines',
+          meta: { title: 'أنواع المطبخ' },
+          component: () => import('@/views/restaurant/RestaurantCuisinesView.vue'),
+        },
+        {
+          path: 'restaurant/reservations',
+          name: 'restaurant-reservations',
+          meta: { title: 'حجوزات الطاولات' },
+          component: () => import('@/views/restaurant/RestaurantReservationsView.vue'),
+        },
       ],
     },
-    { path: '/:pathMatch(.*)*', redirect: '/' },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue'),
+      meta: { title: '404', public: true },
+    },
   ],
 })
 
 router.beforeEach((to, _, next) => {
-  if (to.meta.public) return next()
+  const { locale } = useLocaleStore()
+  document.documentElement.lang = locale
+  document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'
 
-  document.documentElement.lang = 'ar'
-  document.documentElement.dir = 'rtl'
+  if (to.meta.public) return next()
 
   const auth = useAuthStore()
   const token = localStorage.getItem('admin_token') || localStorage.getItem('hajiz_admin_token')

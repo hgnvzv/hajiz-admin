@@ -1,169 +1,233 @@
 <template>
-  <div class="space-y-6" dir="rtl">
-    <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+  <div class="space-y-6" :dir="dir">
+    <PageHeader :title="t('apps.title')" :description="t('apps.desc')" :crumbs="[{ label: t('nav.dashboard'), to: '/dashboard' }, { label: t('apps.title') }]" />
+
+    <div class="page-card p-4">
       <div class="flex flex-wrap items-end gap-3">
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="f in filters"
-            :key="f.value"
-            type="button"
-            class="rounded-xl px-4 py-2 text-sm font-bold transition"
-            :class="status === f.value ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-            @click="setStatus(f.value)"
-          >
-            {{ f.label }}
-          </button>
+        <div class="min-w-[200px] flex-1">
+          <label class="label-field">{{ t('common.search') }}</label>
+          <input v-model="search" type="search" class="input-field" :placeholder="t('apps.search')" @keyup.enter="apply" />
         </div>
-        <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600" @click="load">
-          تحديث
-        </button>
+        <div>
+          <label class="label-field">{{ t('common.status') }}</label>
+          <div class="flex flex-wrap gap-1">
+            <button
+              v-for="f in statusFilters"
+              :key="f.value"
+              type="button"
+              class="rounded-xl px-3 py-2 text-xs font-bold"
+              :class="status === f.value ? 'bg-brand text-white' : 'bg-slate-100 text-app-muted'"
+              @click="setStatus(f.value)"
+            >
+              {{ f.label }}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="label-field">{{ t('common.domain') }}</label>
+          <div class="flex flex-wrap gap-1">
+            <button
+              v-for="f in domainFilters"
+              :key="f.value"
+              type="button"
+              class="rounded-xl px-3 py-2 text-xs font-bold"
+              :class="domainFilter === f.value ? 'bg-brand text-white' : 'bg-slate-100 text-app-muted'"
+              @click="setDomain(f.value)"
+            >
+              {{ f.label }}
+            </button>
+          </div>
+        </div>
+        <button type="button" class="btn-secondary" @click="load">{{ t('common.refresh') }}</button>
       </div>
+      <p v-if="domainFilter && !hasDomainField" class="mt-3 text-xs text-amber-800">
+        {{ locale === 'ar'
+          ? 'عقد قائمة الطلبات الحالي لا يتضمن domainType. التصفية تعمل فقط إذا أعاد الخادم الحقل.'
+          : 'The current application list DTO does not include domainType. Filtering works only if the API returns that field.' }}
+      </p>
     </div>
 
     <DataTable
       :columns="columns"
       :rows="rows"
       :loading="loading"
+      :error="error"
       :total="total"
       :page="page"
       :page-size="pageSize"
-      empty-text="لا توجد طلبات انضمام"
+      :empty-text="t('apps.empty')"
       show-index
       @page-change="onPage"
+      @retry="load"
     >
-      <template #cell-ownerName="{ row }">
-        {{ row.ownerName || '—' }}
-      </template>
       <template #cell-businessName="{ row }">
-        <RouterLink :to="`/applications/${row.id}`" class="font-bold text-blue-600 hover:underline">
+        <RouterLink :to="`/applications/${row.id}`" class="font-bold text-brand hover:underline">
           {{ row.businessName || '—' }}
         </RouterLink>
       </template>
+      <template #cell-domainType="{ row }">
+        <DomainBadge :domain-type="row.domainType ?? row.businessDomainType" />
+      </template>
       <template #cell-status="{ row }">
-        <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">
-          {{ statusLabel(row.status) }}
-        </span>
+        <span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="statusClass(row.status)">{{ statusLabel(row.status) }}</span>
       </template>
       <template #cell-createdAt="{ row }">{{ formatDateShort(row.createdAt as string) }}</template>
       <template #cell-actions="{ row }">
         <div class="flex flex-wrap gap-1.5">
-          <RouterLink :to="`/applications/${row.id}`" class="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700">
-            التفاصيل
-          </RouterLink>
-          <button v-if="row.status === 'Pending'" type="button" class="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700" @click="approve(row)">
-            قبول
-          </button>
-          <button v-if="row.status === 'Pending'" type="button" class="rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-700" @click="openReject(row)">
-            رفض
-          </button>
+          <RouterLink :to="`/applications/${row.id}`" class="rounded-lg bg-brand-light px-2.5 py-1.5 text-xs font-bold text-brand-dark">{{ t('common.details') }}</RouterLink>
+          <button v-if="row.status === 'Pending'" type="button" class="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800" @click="askApprove(row)">{{ t('apps.approve') }}</button>
+          <button v-if="row.status === 'Pending'" type="button" class="rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-700" @click="openReject(row)">{{ t('apps.reject') }}</button>
         </div>
       </template>
     </DataTable>
 
-    <ConfirmModal
-      v-model="rejectOpen"
-      title="رفض طلب الانضمام"
-      message="اكتب سبب الرفض ليتم حفظه مع الطلب"
-      confirm-text="رفض الطلب"
-      confirm-color="danger"
-      @confirm="confirmReject"
-    >
-      <textarea v-model="rejectReason" rows="3" class="mt-2 w-full rounded-xl border border-slate-200 p-3" placeholder="سبب الرفض" />
+    <ConfirmModal v-model="approveOpen" :title="t('apps.approve')" :message="t('apps.approveConfirm')" :confirm-text="t('apps.approve')" :busy="busy" @confirm="confirmApprove" />
+    <ConfirmModal v-model="rejectOpen" :title="t('apps.rejectTitle')" :message="t('apps.rejectHint')" :confirm-text="t('apps.reject')" confirm-color="danger" :busy="busy" @confirm="confirmReject">
+      <textarea v-model="rejectReason" rows="3" class="input-field mt-2" :placeholder="t('apps.rejectReason')" />
     </ConfirmModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { approveApplication, getApplications, rejectApplication } from '@/api'
 import DataTable, { type ColumnDef } from '@/components/common/DataTable.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import DomainBadge from '@/components/common/DomainBadge.vue'
 import { apiMessage } from '@/utils/error'
 import { formatDateShort } from '@/utils/format'
 import { normalizePaged, statusClass, statusLabel } from '@/utils/admin'
 import { welcomeCreditsApproveMessage } from '@/utils/settings'
+import { LAUNCH_DOMAIN_FILTERS, readDomainType } from '@/utils/domain'
+import { useI18n } from '@/composables/useI18n'
 
+const { t, dir, locale } = useI18n()
 const toast = useToast()
 const route = useRoute()
-const filters = [
-  { value: '', label: 'الكل' },
-  { value: 'Pending', label: 'معلقة' },
-  { value: 'Approved', label: 'مقبولة' },
-  { value: 'Rejected', label: 'مرفوضة' },
-]
-const columns: ColumnDef[] = [
-  { key: 'ownerName', label: 'صاحب الطلب' },
-  { key: 'businessName', label: 'المحل' },
-  { key: 'phone', label: 'الهاتف' },
-  { key: 'city', label: 'المحافظة' },
-  { key: 'categoryName', label: 'التصنيف' },
-  { key: 'status', label: 'الحالة' },
-  { key: 'createdAt', label: 'تاريخ الطلب' },
-  { key: 'actions', label: 'إجراءات' },
-]
+
+const statusFilters = computed(() => [
+  { value: '', label: t('common.all') },
+  { value: 'Pending', label: locale.value === 'ar' ? 'معلقة' : 'Pending' },
+  { value: 'Approved', label: locale.value === 'ar' ? 'مقبولة' : 'Approved' },
+  { value: 'Rejected', label: locale.value === 'ar' ? 'مرفوضة' : 'Rejected' },
+])
+
+const columns = computed<ColumnDef[]>(() => [
+  { key: 'ownerName', label: t('common.owner') },
+  { key: 'businessName', label: locale.value === 'ar' ? 'النشاط' : 'Business' },
+  { key: 'domainType', label: t('common.domain') },
+  { key: 'phone', label: t('common.phone') },
+  { key: 'city', label: locale.value === 'ar' ? 'المحافظة' : 'City' },
+  { key: 'categoryName', label: locale.value === 'ar' ? 'التصنيف' : 'Category' },
+  { key: 'status', label: t('common.status') },
+  { key: 'createdAt', label: locale.value === 'ar' ? 'تاريخ الطلب' : 'Submitted' },
+  { key: 'actions', label: t('common.actions') },
+])
 
 const rows = ref<Record<string, unknown>[]>([])
 const loading = ref(false)
+const error = ref<string | null>(null)
 const total = ref(0)
 const page = ref(1)
 const pageSize = 15
+const search = ref('')
 const status = ref(typeof route.query.status === 'string' ? route.query.status : '')
+const domainFilter = ref(typeof route.query.domain === 'string' ? route.query.domain : '')
+const domainFilters = LAUNCH_DOMAIN_FILTERS
+const hasDomainField = ref(false)
+const approveOpen = ref(false)
 const rejectOpen = ref(false)
 const rejectReason = ref('')
-const rejectRow = ref<Record<string, unknown> | null>(null)
+const target = ref<Record<string, unknown> | null>(null)
+const busy = ref(false)
 
 async function load() {
   loading.value = true
+  error.value = null
   try {
     const res = await getApplications({ status: status.value || undefined, page: page.value, pageSize })
     const d = normalizePaged(res.data)
-    rows.value = d.items
-    total.value = d.total
+    hasDomainField.value = d.items.some((row) => readDomainType(row) != null)
+    const q = search.value.trim().toLowerCase()
+    let items = d.items
+    if (q) {
+      items = items.filter((row) =>
+        [row.businessName, row.ownerName, row.phone].some((v) => String(v ?? '').toLowerCase().includes(q)),
+      )
+    }
+    const wanted = domainFilter.value === '' ? null : Number(domainFilter.value)
+    if (wanted != null && !Number.isNaN(wanted)) {
+      items = items.filter((row) => readDomainType(row) === wanted)
+    }
+    rows.value = items
+    total.value = q || wanted != null ? items.length : d.total
   } catch (e) {
-    toast.error(apiMessage(e, 'تعذر تحميل طلبات الانضمام'))
+    error.value = apiMessage(e, t('common.error'))
   } finally {
     loading.value = false
   }
 }
 
-function setStatus(v: string) {
-  status.value = v
+function apply() {
   page.value = 1
   load()
 }
-
+function setStatus(v: string) {
+  status.value = v
+  apply()
+}
+function setDomain(v: string) {
+  domainFilter.value = v
+  apply()
+}
 function onPage(p: number) {
   page.value = p
   load()
 }
-
-async function approve(row: Record<string, unknown>) {
-  if (!confirm('هل تريد قبول طلب الانضمام؟')) return
-  try {
-    await approveApplication(String(row.id))
-    toast.success(await welcomeCreditsApproveMessage('صاحب المحل'))
-    load()
-  } catch (e) {
-    toast.error(apiMessage(e))
-  }
+function askApprove(row: Record<string, unknown>) {
+  target.value = row
+  approveOpen.value = true
 }
-
 function openReject(row: Record<string, unknown>) {
-  rejectRow.value = row
+  target.value = row
   rejectReason.value = ''
   rejectOpen.value = true
 }
 
-async function confirmReject() {
-  if (!rejectRow.value?.id) return
+async function confirmApprove() {
+  if (!target.value?.id) return
+  busy.value = true
   try {
-    await rejectApplication(String(rejectRow.value.id), rejectReason.value || 'لم يتم تحديد سبب')
-    toast.success('تم رفض الطلب')
+    await approveApplication(String(target.value.id))
+    toast.success(await welcomeCreditsApproveMessage(locale.value === 'ar' ? 'صاحب العمل' : 'business'))
+    approveOpen.value = false
     load()
   } catch (e) {
     toast.error(apiMessage(e))
+  } finally {
+    busy.value = false
+  }
+}
+
+async function confirmReject() {
+  if (!target.value?.id) return
+  if (!rejectReason.value.trim()) {
+    toast.warning(t('apps.rejectReason'))
+    return
+  }
+  busy.value = true
+  try {
+    await rejectApplication(String(target.value.id), rejectReason.value.trim())
+    toast.success(t('apps.rejected'))
+    rejectOpen.value = false
+    load()
+  } catch (e) {
+    toast.error(apiMessage(e))
+  } finally {
+    busy.value = false
   }
 }
 
