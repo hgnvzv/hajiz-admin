@@ -67,6 +67,7 @@ import {
   MapPinIcon,
   MegaphoneIcon,
   PhotoIcon,
+  SparklesIcon,
   Squares2X2Icon,
   TableCellsIcon,
   TagIcon,
@@ -149,6 +150,7 @@ const groups = computed(() => [
       { to: '/notifications', icon: BellAlertIcon, label: t('nav.notifications'), badge: null },
       { to: '/reports', icon: ChartBarIcon, label: t('nav.reports'), badge: null },
       { to: '/settings', icon: Cog6ToothIcon, label: t('nav.settings'), badge: null },
+      { to: '/ai', icon: SparklesIcon, label: t('nav.ai'), badge: null },
     ],
   },
   {

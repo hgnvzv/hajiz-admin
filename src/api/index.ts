@@ -238,6 +238,23 @@ export const getPlatformSettings = () => api.get('/admin/settings')
 export const updatePlatformSettings = (data: Record<string, unknown>) =>
   api.put('/admin/settings', data)
 
+// ── AI assistant (admin) ──
+export const getAiSettings = () => api.get('/admin/ai/settings')
+
+export const updateAiSettings = (data: Record<string, unknown>) =>
+  api.put('/admin/ai/settings', data)
+
+export const setAiKillSwitch = (enabled: boolean) =>
+  api.post(`/admin/ai/kill-switch?enabled=${enabled}`)
+
+export const getAiUsage = (days = 14) =>
+  api.get('/admin/ai/usage', { params: { days } })
+
+export const getAiKnowledge = () => api.get('/admin/ai/knowledge')
+
+export const setAiKnowledgeActive = (id: string, active: boolean) =>
+  api.put(`/admin/ai/knowledge/${id}/active?active=${active}`)
+
 // ── Public ──
 export const getCities = () => api.get('/public/cities')
 

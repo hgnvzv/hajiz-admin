@@ -217,6 +217,12 @@ const router = createRouter({
           component: () => import('@/views/admin/SettingsView.vue'),
         },
         {
+          path: 'ai',
+          name: 'ai-settings',
+          meta: { title: 'المساعد الذكي' },
+          component: () => import('@/views/admin/AiSettingsView.vue'),
+        },
+        {
           path: 'revenue',
           name: 'revenue',
           meta: { title: 'الإيرادات' },
