@@ -31,6 +31,17 @@ export const getAdminRestaurantCuisines = () => api.get('/admin/restaurant/cuisi
 export const createAdminRestaurantCuisine = (data: Record<string, unknown>) =>
   api.post('/admin/restaurant/cuisines', data)
 
+export const updateAdminRestaurantCuisine = (id: string, data: Record<string, unknown>) =>
+  api.put(`/admin/restaurant/cuisines/${id}`, data)
+
+export const updateAdminRestaurantCuisineIcon = (id: string, file: File) => {
+  const fd = new FormData()
+  fd.append('icon', file)
+  return api.put(`/admin/restaurant/cuisines/${id}/icon`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
 export const toggleAdminRestaurantCuisine = (id: string) =>
   api.put(`/admin/restaurant/cuisines/${id}/toggle`)
 
