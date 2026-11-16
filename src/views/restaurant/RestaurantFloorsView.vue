@@ -46,8 +46,16 @@
             :floor="activeFloor"
             :selected-id="selectedId"
             :fit-label="locale === 'ar' ? 'ملاءمة' : 'Fit'"
+            :select-label="t('decor.select')"
+            :wall-label="t('decor.wall')"
+            :window-label="t('decor.window')"
+            :shelf-label="t('decor.shelf')"
+            :delete-decor-label="t('decor.delete')"
+            :wall-hint="t('decor.wallHint')"
             @select="selectedId = $event"
             @move="onMove"
+            @add-decor="onAddDecor"
+            @remove-decor="onRemoveDecor"
           />
           <EmptyState v-else :title="t('common.empty')" />
         </section>
@@ -91,6 +99,15 @@
             <p class="text-sm text-app-muted">{{ t('table.add') }}</p>
             <button type="button" class="btn-primary w-full" @click="addTable">{{ t('table.add') }}</button>
             <button type="button" class="btn-secondary w-full" @click="openFloor(activeFloor)">{{ t('floor.edit') }}</button>
+            <button
+              type="button"
+              class="btn-primary w-full"
+              :disabled="saving || !decorDirty"
+              @click="saveDecor"
+            >
+              {{ t('decor.save') }}
+            </button>
+            <p class="text-xs text-app-muted">{{ t('decor.hint') }}</p>
             <p class="text-xs text-app-muted">{{ t('rest.noDeleteFloor') }}</p>
           </div>
         </aside>
@@ -139,7 +156,16 @@ import FormField from '@/components/common/FormField.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { isGuid, restaurantBusinessId, normalizePaged } from '@/utils/admin'
 import { apiMessage } from '@/utils/error'
-import { parseFloor, parseTable, TABLE_SHAPES, tablePayload, type FloorGeom } from '@/types/floorPlan'
+import {
+  floorPayload,
+  makeDecorId,
+  parseFloor,
+  parseTable,
+  TABLE_SHAPES,
+  tablePayload,
+  type FloorDecorType,
+  type FloorGeom,
+} from '@/types/floorPlan'
 import { useI18n } from '@/composables/useI18n'
 
 const { t, dir, locale } = useI18n()
@@ -149,6 +175,7 @@ const toast = useToast()
 const loading = ref(false)
 const saving = ref(false)
 const dirty = ref(false)
+const decorDirty = ref(false)
 const floors = ref<FloorGeom[]>([])
 const restaurants = ref<Record<string, unknown>[]>([])
 const manualId = ref('')
@@ -179,10 +206,11 @@ function go() {
 }
 
 function selectFloor(id: string) {
-  if (dirty.value && !confirm(t('common.unsaved'))) return
+  if ((dirty.value || decorDirty.value) && !confirm(t('common.unsaved'))) return
   activeFloorId.value = id
   selectedId.value = null
   dirty.value = false
+  decorDirty.value = false
 }
 
 function onMove(id: string, posX: number, posY: number) {
@@ -192,6 +220,50 @@ function onMove(id: string, posX: number, posY: number) {
   table.posX = posX
   table.posY = posY
   dirty.value = true
+}
+
+function onAddDecor(type: FloorDecorType, x1: number, y1: number, x2?: number, y2?: number) {
+  const floor = activeFloor.value
+  if (!floor) return
+  floor.decorations.push({
+    id: makeDecorId(),
+    type,
+    x1,
+    y1,
+    x2,
+    y2,
+    rotationDeg: 0,
+  })
+  decorDirty.value = true
+}
+
+function onRemoveDecor(id: string) {
+  const floor = activeFloor.value
+  if (!floor) return
+  floor.decorations = floor.decorations.filter((d) => d.id !== id)
+  decorDirty.value = true
+}
+
+async function saveDecor() {
+  if (!activeFloor.value) return
+  saving.value = true
+  try {
+    const res = await updateAdminRestaurantFloor(
+      activeFloor.value.id,
+      floorPayload(activeFloor.value),
+      businessId.value,
+    )
+    const parsed = parseFloor(res.data as Record<string, unknown>)
+    floors.value = floors.value.map((f) =>
+      f.id === parsed.id ? { ...parsed, tables: f.tables, decorations: parsed.decorations } : f,
+    )
+    decorDirty.value = false
+    toast.success(t('common.save'))
+  } catch (e) {
+    toast.error(apiMessage(e))
+  } finally {
+    saving.value = false
+  }
 }
 
 async function reload() {
@@ -204,6 +276,7 @@ async function reload() {
     floors.value = (raw as Record<string, unknown>[]).map(parseFloor)
     if (!activeFloorId.value && floors.value[0]) activeFloorId.value = floors.value[0].id
     dirty.value = false
+    decorDirty.value = false
   } catch (e) {
     listWarning.value = apiMessage(e, t('rest.notPublicFloors'))
   } finally {
@@ -223,11 +296,24 @@ async function saveFloor() {
   saving.value = true
   try {
     if (editingFloorId.value) {
-      const res = await updateAdminRestaurantFloor(editingFloorId.value, floorForm.value, businessId.value)
+      const existing = floors.value.find((f) => f.id === editingFloorId.value)
+      const res = await updateAdminRestaurantFloor(
+        editingFloorId.value,
+        {
+          ...floorForm.value,
+          decorations: existing?.decorations ?? [],
+        },
+        businessId.value,
+      )
       const parsed = parseFloor(res.data as Record<string, unknown>)
-      floors.value = floors.value.map((f) => (f.id === parsed.id ? { ...parsed, tables: f.tables } : f))
+      floors.value = floors.value.map((f) =>
+        f.id === parsed.id ? { ...parsed, tables: f.tables, decorations: parsed.decorations } : f,
+      )
     } else {
-      const res = await createAdminRestaurantFloor(businessId.value, floorForm.value)
+      const res = await createAdminRestaurantFloor(businessId.value, {
+        ...floorForm.value,
+        decorations: [],
+      })
       const parsed = parseFloor(res.data as Record<string, unknown>)
       floors.value.push(parsed)
       activeFloorId.value = parsed.id
@@ -292,7 +378,7 @@ onMounted(async () => {
 })
 
 function onLeave(e: BeforeUnloadEvent) {
-  if (!dirty.value) return
+  if (!dirty.value && !decorDirty.value) return
   e.preventDefault()
   e.returnValue = ''
 }

@@ -14,6 +14,19 @@ export interface FloorTableGeom {
   isActive: boolean
 }
 
+/** Simple sketch: wall line, or window/shelf stamp. */
+export type FloorDecorType = 'wall' | 'window' | 'shelf'
+
+export interface FloorDecor {
+  id: string
+  type: FloorDecorType
+  x1: number
+  y1: number
+  x2?: number
+  y2?: number
+  rotationDeg?: number
+}
+
 export interface FloorGeom {
   id: string
   name: string
@@ -23,6 +36,7 @@ export interface FloorGeom {
   canvasHeight: number
   isActive: boolean
   tables: FloorTableGeom[]
+  decorations: FloorDecor[]
 }
 
 export const TABLE_SHAPES = [
@@ -32,10 +46,47 @@ export const TABLE_SHAPES = [
   { id: 4, key: 'shape.4' },
 ] as const
 
+function newId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID().replace(/-/g, '')
+    : `d${Date.now()}${Math.floor(Math.random() * 1e6)}`
+}
+
+export function parseDecor(raw: Record<string, unknown>): FloorDecor | null {
+  const type = String(raw.type ?? '').toLowerCase()
+  if (type !== 'wall' && type !== 'window' && type !== 'shelf') return null
+  const x1 = Number(raw.x1 ?? 0) || 0
+  const y1 = Number(raw.y1 ?? 0) || 0
+  if (type === 'wall') {
+    if (raw.x2 == null || raw.y2 == null) return null
+    return {
+      id: String(raw.id ?? newId()),
+      type: 'wall',
+      x1,
+      y1,
+      x2: Number(raw.x2) || 0,
+      y2: Number(raw.y2) || 0,
+    }
+  }
+  return {
+    id: String(raw.id ?? newId()),
+    type,
+    x1,
+    y1,
+    rotationDeg: Number(raw.rotationDeg ?? 0) || 0,
+  }
+}
+
 export function parseFloor(raw: Record<string, unknown>): FloorGeom {
   const tablesRaw = raw.tables
   const tables = Array.isArray(tablesRaw)
     ? tablesRaw.map((t) => parseTable(t as Record<string, unknown>))
+    : []
+  const decorRaw = raw.decorations
+  const decorations = Array.isArray(decorRaw)
+    ? (decorRaw
+        .map((d) => parseDecor(d as Record<string, unknown>))
+        .filter(Boolean) as FloorDecor[])
     : []
   return {
     id: String(raw.id ?? ''),
@@ -46,6 +97,7 @@ export function parseFloor(raw: Record<string, unknown>): FloorGeom {
     canvasHeight: Number(raw.canvasHeight ?? 1000) || 1000,
     isActive: raw.isActive !== false,
     tables,
+    decorations,
   }
 }
 
@@ -88,5 +140,18 @@ export function floorPayload(f: FloorGeom) {
     canvasWidth: f.canvasWidth,
     canvasHeight: f.canvasHeight,
     isActive: f.isActive,
+    decorations: f.decorations.map((d) => ({
+      id: d.id,
+      type: d.type,
+      x1: d.x1,
+      y1: d.y1,
+      x2: d.x2,
+      y2: d.y2,
+      rotationDeg: d.rotationDeg,
+    })),
   }
+}
+
+export function makeDecorId() {
+  return newId()
 }
