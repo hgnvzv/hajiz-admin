@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
-    <PageHeader title="الأطباء المستقلون" description="الواجهة العامة مع independentOnly. المجال IndependentDoctor من الباكند." />
-    <DataTable :columns="columns" :rows="rows" :loading="loading" :total="total" :page="page" :page-size="pageSize" empty-text="لا يوجد أطباء مستقلون" show-index @page-change="onPage">
+    <PageHeader title="الأطباء" description="ملفات الأطباء التابعة للعيادات (من الكتالوج العام). لا توجد حسابات مستقلة للأطباء." />
+    <DataTable :columns="columns" :rows="rows" :loading="loading" :total="total" :page="page" :page-size="pageSize" empty-text="لا يوجد أطباء" show-index @page-change="onPage">
       <template #cell-name="{ row }">
         <RouterLink :to="`/medical/doctors/${row.id ?? row.doctorProfileId}`" class="font-bold text-cyan-800 hover:underline">
           {{ row.fullName ?? row.nameAr ?? row.name ?? '—' }}
@@ -53,7 +53,7 @@ function specialtyText(row: Record<string, unknown>) {
 async function load() {
   loading.value = true
   try {
-    const res = await getPublicMedicalDoctors({ independentOnly: true, page: page.value, pageSize })
+    const res = await getPublicMedicalDoctors({ independentOnly: false, page: page.value, pageSize })
     const d = normalizePaged(res.data)
     rows.value = d.items
     total.value = d.total

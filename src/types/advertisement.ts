@@ -37,6 +37,14 @@ export interface UpdateAdvertisementDto {
   videoUrl?: string | null
   durationDays?: number
   displayOrder?: number
+  targetDomainType?: number | null
+  placement?: number
+  isActiveToggle?: boolean
+}
+
+export interface ApproveAdvertisementDto {
+  placement?: number
+  targetDomainType?: number | null
 }
 
 export interface PagedResult<T> {

@@ -36,8 +36,11 @@ export const adminAdvertisementsApi = {
     return api.delete(`/admin/advertisements/${id}`)
   },
 
-  approve(id: string) {
-    return api.put<AdvertisementDto>(`/admin/advertisements/${id}/approve`)
+  approve(
+    id: string,
+    body?: { placement?: number; targetDomainType?: number | null },
+  ) {
+    return api.put<AdvertisementDto>(`/admin/advertisements/${id}/approve`, body ?? {})
   },
 
   reject(id: string, reason: string) {

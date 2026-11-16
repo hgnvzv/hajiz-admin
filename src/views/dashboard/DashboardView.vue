@@ -153,7 +153,7 @@ async function load() {
         failed.value.clinics = true
         clinicCount.value = null
       }),
-    getPublicMedicalDoctors({ independentOnly: true, page: 1, pageSize: 1 })
+    getPublicMedicalDoctors({ independentOnly: false, page: 1, pageSize: 1 })
       .then((r) => {
         doctorCount.value = normalizePaged(r.data).total
       })

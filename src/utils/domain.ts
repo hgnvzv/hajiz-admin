@@ -74,6 +74,5 @@ export function domainBadgeClass(domain: number | null): string {
 export const LAUNCH_DOMAIN_FILTERS = [
   { value: '', label: 'الكل' },
   { value: String(BusinessDomainType.Clinic), label: 'عيادات طبية' },
-  { value: String(BusinessDomainType.IndependentDoctor), label: 'أطباء مستقلون' },
   { value: String(BusinessDomainType.Restaurant), label: 'مطاعم' },
 ]

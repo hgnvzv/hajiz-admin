@@ -34,6 +34,24 @@
               <input v-model.number="form.displayOrder" type="number" min="0" step="1" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="saving" />
             </label>
           </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">المجال</span>
+              <select v-model.number="form.targetDomainType" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="saving">
+                <option :value="1">عيادة / طبي</option>
+                <option :value="3">مطعم</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">موضع العرض</span>
+              <select v-model.number="form.placement" class="w-full rounded-xl border border-slate-200 px-4 py-3" :disabled="saving">
+                <option :value="1">مركز الاكتشاف</option>
+                <option :value="3">رئيسية الطبي فقط</option>
+                <option :value="2">رئيسية المطاعم فقط</option>
+                <option :value="0">الرئيسية (قديم)</option>
+              </select>
+            </label>
+          </div>
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold" :disabled="saving" @click="close">
               إلغاء
@@ -74,6 +92,8 @@ const form = reactive({
   videoUrl: '',
   durationDays: 1,
   displayOrder: 0,
+  targetDomainType: 1,
+  placement: 3,
 })
 
 watch(
@@ -85,12 +105,16 @@ watch(
     form.videoUrl = ad.videoUrl ?? ''
     form.durationDays = ad.durationDays ?? 1
     form.displayOrder = ad.displayOrder ?? 0
+    form.targetDomainType = ad.targetDomainType ?? 1
+    form.placement = ad.placement ?? 3
     original.value = {
       title: form.title,
       description: form.description,
       videoUrl: form.videoUrl || null,
       durationDays: form.durationDays,
       displayOrder: form.displayOrder,
+      targetDomainType: form.targetDomainType,
+      placement: form.placement,
     }
   },
   { immediate: true },
@@ -104,6 +128,9 @@ function buildPatch(): UpdateAdvertisementDto {
   if (video !== (original.value.videoUrl ?? null)) patch.videoUrl = video
   if (form.durationDays !== original.value.durationDays) patch.durationDays = form.durationDays
   if (form.displayOrder !== original.value.displayOrder) patch.displayOrder = form.displayOrder
+  if (form.targetDomainType !== original.value.targetDomainType)
+    patch.targetDomainType = form.targetDomainType
+  if (form.placement !== original.value.placement) patch.placement = form.placement
   return patch
 }
 

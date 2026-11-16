@@ -211,7 +211,7 @@
                 v-if="detailAd.status === 'Pending'"
                 type="button"
                 class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white"
-                @click="approve(detailAd); detailOpen = false"
+                @click="openApprove(detailAd); detailOpen = false"
               >
                 قبول
               </button>
@@ -235,6 +235,56 @@
     <AdvertisementEditModal v-model="editOpen" :advertisement="editAd" @saved="onSaved" />
 
     <AdvertisementRejectModal v-model="rejectOpen" :loading="actionLoading" @confirm="confirmReject" />
+
+    <!-- Approve + placement targeting -->
+    <Teleport to="body">
+      <div
+        v-if="approveOpen"
+        class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="approveOpen = false" />
+        <div class="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" dir="rtl">
+          <h3 class="text-lg font-black text-slate-900">قبول وتفعيل الإعلان</h3>
+          <p class="mt-1 text-sm text-slate-500">{{ approveAd?.title }}</p>
+          <p class="mt-3 text-sm text-slate-600">
+            حدّد المجال وموضع الظهور. مثال: المجال الطبي + «رئيسية الطبي» يظهر فقط في الصفحة الرئيسية للعيادات.
+          </p>
+          <div class="mt-4 grid gap-4">
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">المجال</span>
+              <select v-model.number="approveForm.targetDomainType" class="w-full rounded-xl border border-slate-200 px-4 py-3">
+                <option :value="1">عيادة / طبي</option>
+                <option :value="3">مطعم</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">موضع العرض</span>
+              <select v-model.number="approveForm.placement" class="w-full rounded-xl border border-slate-200 px-4 py-3">
+                <option :value="3">رئيسية الطبي فقط</option>
+                <option :value="2">رئيسية المطاعم فقط</option>
+                <option :value="1">مركز الاكتشاف (اختيار المجال)</option>
+                <option :value="0">الكل / قديم</option>
+              </select>
+            </label>
+          </div>
+          <div class="mt-6 flex justify-end gap-2">
+            <button type="button" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold" @click="approveOpen = false">
+              إلغاء
+            </button>
+            <button
+              type="button"
+              class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+              :disabled="actionLoading"
+              @click="confirmApprove"
+            >
+              {{ actionLoading ? 'جاري التفعيل…' : 'قبول وتفعيل' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <ConfirmModal
       v-model="deleteOpen"
@@ -381,6 +431,13 @@ const editAd = ref<AdvertisementDto | null>(null)
 
 const rejectOpen = ref(false)
 const rejectAd = ref<AdvertisementDto | null>(null)
+
+const approveOpen = ref(false)
+const approveAd = ref<AdvertisementDto | null>(null)
+const approveForm = reactive({
+  targetDomainType: 1,
+  placement: 3,
+})
 
 const deleteOpen = ref(false)
 const deleteAd = ref<AdvertisementDto | null>(null)
@@ -553,12 +610,32 @@ function openEdit(row: AdvertisementDto) {
   editOpen.value = true
 }
 
+function openApprove(row: AdvertisementDto) {
+  approveAd.value = row
+  const domain = row.targetDomainType ?? 1
+  approveForm.targetDomainType = domain === 3 ? 3 : 1
+  if (row.placement === 0 || row.placement === 1 || row.placement === 2 || row.placement === 3) {
+    approveForm.placement = row.placement
+  } else {
+    approveForm.placement = domain === 3 ? 2 : 3
+  }
+  approveOpen.value = true
+}
+
 async function approve(row: AdvertisementDto) {
-  if (!confirm('قبول هذا الإعلان؟ سيتم نشره وتفعيله.')) return
+  openApprove(row)
+}
+
+async function confirmApprove() {
+  if (!approveAd.value?.id) return
   actionLoading.value = true
   try {
-    await adminAdvertisementsApi.approve(row.id)
-    toast.success('تم قبول الإعلان')
+    await adminAdvertisementsApi.approve(approveAd.value.id, {
+      placement: approveForm.placement,
+      targetDomainType: approveForm.targetDomainType,
+    })
+    toast.success('تم قبول الإعلان وتفعيل موضع العرض')
+    approveOpen.value = false
     load()
   } catch (e) {
     toast.error(apiMessage(e))
